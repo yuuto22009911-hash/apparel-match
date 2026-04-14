@@ -11,6 +11,7 @@ export default function ProfileEditPage() {
   const supabase = createClient();
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [isNewProfile, setIsNewProfile] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{
@@ -50,13 +51,25 @@ export default function ProfileEditPage() {
           .from('profiles')
           .select('*')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
+          console.error('Profile fetch error:', error);
           setMessage({
             type: 'error',
-            text: 'プロフィール読み込みエラー',
+            text: 'プロフィール読み込みエラー: ' + error.message,
           });
+          setLoading(false);
+          return;
+        }
+
+        if (!profileData) {
+          setIsNewProfile(true);
+          setFormData((prev) => ({
+            ...prev,
+            display_name: user.email?.split('@')[0] || 'ユーザー',
+          }));
+          setLoading(false);
           return;
         }
 
@@ -127,15 +140,12 @@ export default function ProfileEditPage() {
         data: { user },
       } = await supabase.auth.getUser();
 
-      if (!user || !profile) {
-        setMessage({
-          type: 'error',
-          text: 'ユーザー情報が見つかりません',
-        });
+      if (!user) {
+        setMessage({ type: 'error', text: 'ユーザー情報が見つかりません' });
         return;
       }
 
-      let avatar_url = profile.avatar_url;
+      let avatar_url = profile?.avatar_url || null;
 
       // Upload avatar if changed
       if (avatarFile) {
@@ -147,10 +157,7 @@ export default function ProfileEditPage() {
           .upload(fileName, avatarFile, { upsert: true });
 
         if (uploadError) {
-          setMessage({
-            type: 'error',
-            text: 'アバター アップロード エラー',
-          });
+          setMessage({ type: 'error', text: 'アバターアップロードエラー' });
           setSaving(false);
           return;
         }
@@ -162,48 +169,57 @@ export default function ProfileEditPage() {
         avatar_url = publicUrl;
       }
 
-      // Update profile
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          display_name: formData.display_name,
-          user_type: formData.user_type,
-          bio: formData.bio || null,
-          prefecture: formData.prefecture || null,
-          city: formData.city || null,
-          website_url: formData.website_url || null,
-          skills: formData.skills
-            ? formData.skills
-                .split(',')
-                .map((s) => s.trim())
-                .filter(Boolean)
-            : [],
-          experience_years: formData.experience_years
-            ? parseInt(formData.experience_years)
-            : null,
-          company_name: formData.company_name || null,
-          avatar_url,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
+      const profilePayload = {
+        display_name: formData.display_name,
+        user_type: formData.user_type,
+        bio: formData.bio || null,
+        prefecture: formData.prefecture || null,
+        city: formData.city || null,
+        website_url: formData.website_url || null,
+        skills: formData.skills
+          ? formData.skills.split(',').map((s) => s.trim()).filter(Boolean)
+          : [],
+        experience_years: formData.experience_years
+          ? parseInt(formData.experience_years)
+          : null,
+        company_name: formData.company_name || null,
+        avatar_url,
+        updated_at: new Date().toISOString(),
+      };
 
-      if (updateError) {
-        setMessage({
-          type: 'error',
-          text: 'プロフィール更新エラー',
-        });
-        setSaving(false);
-        return;
+      if (isNewProfile) {
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({ id: user.id, ...profilePayload, is_public: true });
+
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          setMessage({ type: 'error', text: 'プロフィール作成エラー: ' + insertError.message });
+          setSaving(false);
+          return;
+        }
+      } else {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update(profilePayload)
+          .eq('id', user.id);
+
+        if (updateError) {
+          console.error('Update error:', updateError);
+          setMessage({ type: 'error', text: 'プロフィール更新エラー: ' + updateError.message });
+          setSaving(false);
+          return;
+        }
       }
 
       setMessage({
         type: 'success',
-        text: 'プロフィール更新成功',
+        text: isNewProfile ? 'プロフィールを作成しました！' : 'プロフィールを更新しました！',
       });
 
       setTimeout(() => {
         router.push('/dashboard');
-      }, 2000);
+      }, 1500);
     } catch (error) {
       console.error('Error updating profile:', error);
       setMessage({
@@ -230,9 +246,12 @@ export default function ProfileEditPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-md p-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-8">
-            プロフィール編集
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            {isNewProfile ? 'プロフィール設定' : 'プロフィール編集'}
           </h1>
+          {isNewProfile && (
+            <p className="text-slate-600 mb-6">はじめに、あなたのプロフィールを設定しましょう。</p>
+          )}
 
           {message && (
             <div

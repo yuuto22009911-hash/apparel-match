@@ -23,7 +23,7 @@ export default async function DashboardPage() {
     .from('profiles')
     .select('*')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();
 
   if (profileError || !profile) {
     redirect('/profile/edit');
