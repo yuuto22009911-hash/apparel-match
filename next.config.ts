@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  /* Phase 2 config */
+  reactStrictMode: true,
 };
 
 export default nextConfig;
