@@ -39,6 +39,41 @@ export const INQUIRY_STATUSES = {
   closed: 'クローズ',
 } as const;
 
+// 通報理由
+export const REPORT_REASONS = {
+  spam: 'スパム',
+  harassment: '嫌がらせ',
+  fake_profile: '偽プロフィール',
+  inappropriate_content: '不適切なコンテンツ',
+  other: 'その他',
+} as const;
+
+// 通報ステータス
+export const REPORT_STATUSES = {
+  pending: '未対応',
+  reviewed: '確認中',
+  resolved: '解決済み',
+  dismissed: '却下',
+} as const;
+
+// プロフィールステータス
+export const PROFILE_STATUSES = {
+  pending: '承認待ち',
+  approved: '承認済み',
+  rejected: '却下',
+  banned: 'BAN',
+} as const;
+
+// 通知タイプ
+export const NOTIFICATION_TYPES = {
+  chat_message: '新着メッセージ',
+  inquiry_received: '問い合わせ受信',
+  favorite_added: 'お気に入り追加',
+  profile_approved: 'プロフィール承認',
+  profile_rejected: 'プロフィール却下',
+  report_resolved: '通報対応完了',
+} as const;
+
 // ページネーション
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAX_PAGE_SIZE = 50;

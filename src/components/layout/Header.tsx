@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -12,12 +12,42 @@ import {
   LogOut,
   Menu,
   X,
+  Bell,
+  MessagesSquare,
+  Shield,
 } from 'lucide-react';
 
 export function Header() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // 未読通知数
+      const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+      setUnreadNotifications(count || 0);
+
+      // 管理者チェック
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin')
+        .eq('id', user.id)
+        .single();
+      if (profile?.is_admin) setIsAdmin(true);
+    };
+    fetchCounts();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -36,6 +66,13 @@ export function Header() {
 
   const navItems = [
     { href: '/search', label: '検索', icon: Search },
+    { href: '/chat', label: 'チャット', icon: MessagesSquare },
+    {
+      href: '/notifications',
+      label: '通知',
+      icon: Bell,
+      badge: unreadNotifications > 0 ? unreadNotifications : undefined,
+    },
     { href: '/favorites', label: 'お気に入り', icon: Heart },
     { href: '/inquiries', label: '問い合わせ', icon: MessageSquare },
     { href: '/profile/edit', label: 'プロフィール', icon: User },
@@ -64,13 +101,27 @@ export function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 hover:text-amber-900 transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>管理</span>
+              </Link>
+            )}
           </nav>
 
           {/* Desktop Logout Button */}
@@ -86,17 +137,31 @@ export function Header() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button
-            onClick={toggleMenu}
-            className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
-            aria-label="メニューを開く"
-          >
-            {isMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            {/* Mobile notification badge */}
+            <Link
+              href="/notifications"
+              className="relative inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-0 right-0 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5">
+                  {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                </span>
+              )}
+            </Link>
+            <button
+              onClick={toggleMenu}
+              className="inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="メニューを開く"
+            >
+              {isMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Navigation Menu */}
@@ -114,9 +179,24 @@ export function Header() {
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-auto min-w-[20px] h-[20px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={closeMenu}
+                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 transition-colors"
+                >
+                  <Shield className="w-4 h-4" />
+                  <span>管理パネル</span>
+                </Link>
+              )}
               <button
                 onClick={() => {
                   closeMenu();
