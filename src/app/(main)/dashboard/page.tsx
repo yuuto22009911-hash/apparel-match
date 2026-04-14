@@ -26,7 +26,7 @@ export default async function DashboardPage() {
     .single();
 
   if (profileError || !profile) {
-    redirect('/onboarding');
+    redirect('/profile/edit');
   }
 
   // Fetch portfolio count
