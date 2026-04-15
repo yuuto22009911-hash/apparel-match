@@ -123,11 +123,22 @@ export interface InquiryWithProfiles extends Inquiry {
 
 export interface ChatRoom {
   id: string;
-  user1_id: string;
-  user2_id: string;
+  user1_id: string | null;
+  user2_id: string | null;
+  is_group: boolean;
+  name: string | null;
+  icon_url: string | null;
   last_message: string | null;
   last_message_at: string | null;
   created_at: string;
+}
+
+export interface ChatRoomMember {
+  id: string;
+  room_id: string;
+  user_id: string;
+  role: 'owner' | 'admin' | 'member';
+  joined_at: string;
 }
 
 export interface ChatMessage {
@@ -176,8 +187,13 @@ export type ReportStatus = 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 // ========== Phase 2 Extended Types ==========
 
 export interface ChatRoomWithProfile extends ChatRoom {
-  other_user: Profile;
+  other_user?: Profile;
+  members?: ChatRoomMemberWithProfile[];
   unread_count?: number;
+}
+
+export interface ChatRoomMemberWithProfile extends ChatRoomMember {
+  profile: Profile;
 }
 
 export interface ChatMessageWithSender extends ChatMessage {

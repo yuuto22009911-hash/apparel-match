@@ -12,16 +12,24 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  AlertCircle,
 } from 'lucide-react';
 
 const NOTIFICATION_ICONS: Record<string, React.ReactNode> = {
-  chat_message: <MessageSquare className="w-5 h-5" />,
-  inquiry_received: <MessageSquare className="w-5 h-5" />,
-  favorite_added: <Heart className="w-5 h-5" />,
-  profile_approved: <CheckCircle className="w-5 h-5" />,
-  profile_rejected: <XCircle className="w-5 h-5" />,
-  report_resolved: <AlertTriangle className="w-5 h-5" />,
+  chat_message: <MessageSquare className="w-4 h-4" />,
+  inquiry_received: <MessageSquare className="w-4 h-4" />,
+  favorite_added: <Heart className="w-4 h-4" />,
+  profile_approved: <CheckCircle className="w-4 h-4" />,
+  profile_rejected: <XCircle className="w-4 h-4" />,
+  report_resolved: <AlertTriangle className="w-4 h-4" />,
+};
+
+const ICON_COLORS: Record<string, string> = {
+  chat_message: '#6366f1',
+  inquiry_received: '#6366f1',
+  favorite_added: '#ec4899',
+  profile_approved: '#22c55e',
+  profile_rejected: '#f59e0b',
+  report_resolved: '#8b5cf6',
 };
 
 export default function NotificationsPage() {
@@ -33,68 +41,37 @@ export default function NotificationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [marking, setMarking] = useState(false);
 
-  // Fetch notifications
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      setError(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.push('/login');
-        return;
-      }
-
-      const response = await fetch('/api/notifications', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('通知の取得に失敗しました');
-      }
-
+      const response = await fetch('/api/notifications');
+      if (!response.ok) throw new Error('通知の取得に失敗しました');
       const result = await response.json();
       setNotifications(result.data || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '通知取得に失敗しました');
+      setError(err instanceof Error ? err.message : 'エラー');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
+  useEffect(() => { fetchNotifications(); }, []);
 
-  // Handle mark all as read
   const handleMarkAllAsRead = async () => {
     try {
       setMarking(true);
-      const response = await fetch('/api/notifications', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('通知の更新に失敗しました');
-      }
-
-      // Update local state
-      setNotifications((prev) =>
-        prev.map((notification) => ({ ...notification, is_read: true }))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '通知更新に失敗しました');
+      await fetch('/api/notifications', { method: 'PATCH' });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch {
+      setError('通知更新に失敗しました');
     } finally {
       setMarking(false);
     }
   };
 
-  // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -103,157 +80,90 @@ export default function NotificationsPage() {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) {
-      return '今';
-    } else if (diffMins < 60) {
-      return `${diffMins}分前`;
-    } else if (diffHours < 24) {
-      return `${diffHours}時間前`;
-    } else if (diffDays < 7) {
-      return `${diffDays}日前`;
-    } else {
-      return date.toLocaleDateString('ja-JP', {
-        month: 'short',
-        day: 'numeric',
-      });
-    }
+    if (diffMins < 1) return '今';
+    if (diffMins < 60) return `${diffMins}分前`;
+    if (diffHours < 24) return `${diffHours}時間前`;
+    if (diffDays < 7) return `${diffDays}日前`;
+    return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
   };
 
-  // Get icon color based on type
-  const getIconColor = (type: string) => {
-    switch (type) {
-      case 'chat_message':
-      case 'inquiry_received':
-        return 'text-blue-600';
-      case 'favorite_added':
-        return 'text-red-600';
-      case 'profile_approved':
-        return 'text-green-600';
-      case 'profile_rejected':
-        return 'text-orange-600';
-      case 'report_resolved':
-        return 'text-purple-600';
-      default:
-        return 'text-slate-600';
-    }
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--surface-3)', borderTopColor: 'var(--accent)' }} />
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">通知</h1>
-          <p className="text-slate-600">
-            {unreadCount > 0 ? `未読通知: ${unreadCount}件` : '通知一覧'}
-          </p>
+          <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>通知</h1>
+          {unreadCount > 0 && (
+            <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>未読 {unreadCount}件</p>
+          )}
         </div>
-
-        {/* Mark All as Read Button */}
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
             disabled={marking}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold rounded-lg transition-colors duration-200"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-40"
+            style={{ background: 'var(--accent)', color: 'white' }}
           >
-            既読にする
+            すべて既読
           </button>
         )}
       </div>
 
-      {/* Error Alert */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-red-900">エラー</h3>
-            <p className="text-red-700 text-sm">{error}</p>
-          </div>
-        </div>
+        <div className="mb-4 p-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>{error}</div>
       )}
 
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      {notifications.length > 0 ? (
+        <div className="rounded-xl overflow-hidden divide-y" style={{ background: 'var(--surface)' }}>
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className="flex items-start gap-3 px-4 py-3"
+              style={{
+                background: notification.is_read ? 'transparent' : 'rgba(99,102,241,0.05)',
+                borderColor: 'var(--border)',
+              }}
+            >
+              <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center mt-0.5" style={{ background: 'var(--surface-2)', color: ICON_COLORS[notification.type] || 'var(--text-muted)' }}>
+                {NOTIFICATION_ICONS[notification.type] || <Bell className="w-4 h-4" />}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{notification.title}</p>
+                {notification.body && (
+                  <p className="text-xs mt-0.5 line-clamp-2" style={{ color: 'var(--text-muted)' }}>{notification.body}</p>
+                )}
+                {notification.link && (
+                  <Link href={notification.link} className="text-xs font-medium mt-1 inline-block" style={{ color: 'var(--accent)' }}>
+                    詳細を見る
+                  </Link>
+                )}
+              </div>
+
+              <div className="flex-shrink-0 flex items-center gap-2">
+                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{formatDate(notification.created_at)}</span>
+                {!notification.is_read && (
+                  <div className="w-2 h-2 rounded-full" style={{ background: 'var(--accent)' }} />
+                )}
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-
-      {/* Notifications List */}
-      {!loading && (
-        <>
-          {notifications.length > 0 ? (
-            <div className="space-y-3">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`rounded-lg border transition-colors duration-200 p-4 ${
-                    notification.is_read
-                      ? 'bg-white border-slate-200'
-                      : 'bg-blue-50 border-blue-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div
-                      className={`flex-shrink-0 mt-1 ${getIconColor(notification.type)}`}
-                    >
-                      {NOTIFICATION_ICONS[notification.type] || (
-                        <Bell className="w-5 h-5" />
-                      )}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-900">
-                        {notification.title}
-                      </h3>
-
-                      {notification.body && (
-                        <p className="text-sm text-slate-600 mt-1 line-clamp-2">
-                          {notification.body}
-                        </p>
-                      )}
-
-                      {/* Link if available */}
-                      {notification.link && (
-                        <Link
-                          href={notification.link}
-                          className="text-sm text-blue-600 hover:text-blue-700 font-medium mt-2 inline-block"
-                        >
-                          詳細を見る →
-                        </Link>
-                      )}
-                    </div>
-
-                    {/* Time and Read Indicator */}
-                    <div className="flex-shrink-0 text-right">
-                      <p className="text-xs text-slate-500 mb-2">
-                        {formatDate(notification.created_at)}
-                      </p>
-                      {!notification.is_read && (
-                        <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* Empty State */
-            <div className="bg-white rounded-lg shadow-md p-12 text-center">
-              <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                通知はありません
-              </h3>
-              <p className="text-slate-600">
-                新しい通知がここに表示されます
-              </p>
-            </div>
-          )}
-        </>
+      ) : (
+        <div className="rounded-xl p-12 text-center" style={{ background: 'var(--surface)' }}>
+          <Bell className="w-10 h-10 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>通知はありません</p>
+        </div>
       )}
     </div>
   );

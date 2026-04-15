@@ -30,7 +30,6 @@ export function Header() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // 未読通知数
       const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -38,7 +37,6 @@ export function Header() {
         .eq('is_read', false);
       setUnreadNotifications(count || 0);
 
-      // 管理者チェック
       const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin')
@@ -56,13 +54,8 @@ export function Header() {
     router.push('/login');
   };
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false);
 
   const navItems = [
     { href: '/search', label: '検索', icon: Search },
@@ -79,34 +72,45 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <header className="sticky top-0 z-50 border-b" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link
             href="/dashboard"
-            className="flex-shrink-0 flex items-center gap-2 text-xl font-semibold text-slate-900 hover:text-slate-700 transition-colors"
+            className="flex-shrink-0 flex items-center gap-2.5 group"
           >
-            <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">AM</span>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <span className="text-white text-xs font-bold tracking-tight">AM</span>
             </div>
-            <span className="hidden sm:inline">Apparel Match</span>
+            <span className="hidden sm:inline text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              Apparel Match
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-0.5">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors"
+                  style={{ color: 'var(--text-secondary)' }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--surface-2)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                  }}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
                   {item.badge && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                    <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] flex items-center justify-center rounded-full text-[9px] font-bold px-1" style={{ background: 'var(--accent)', color: 'white' }}>
                       {item.badge > 99 ? '99+' : item.badge}
                     </span>
                   )}
@@ -116,7 +120,8 @@ export function Header() {
             {isAdmin && (
               <Link
                 href="/admin"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 hover:text-amber-900 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium"
+                style={{ color: 'var(--warning)' }}
               >
                 <Shield className="w-4 h-4" />
                 <span>管理</span>
@@ -124,50 +129,56 @@ export function Header() {
             )}
           </nav>
 
-          {/* Desktop Logout Button */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Desktop Logout */}
+          <div className="hidden md:flex items-center">
             <button
               onClick={handleLogout}
               disabled={isLoggingOut}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--danger)';
+                e.currentTarget.style.background = 'rgba(239,68,68,0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-muted)';
+                e.currentTarget.style.background = 'transparent';
+              }}
             >
               <LogOut className="w-4 h-4" />
               <span>ログアウト</span>
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-2">
-            {/* Mobile notification badge */}
+          {/* Mobile */}
+          <div className="md:hidden flex items-center gap-1">
             <Link
               href="/notifications"
-              className="relative inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+              className="relative inline-flex items-center justify-center p-2 rounded-md"
+              style={{ color: 'var(--text-secondary)' }}
             >
               <Bell className="w-5 h-5" />
               {unreadNotifications > 0 && (
-                <span className="absolute top-0 right-0 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5">
+                <span className="absolute top-0.5 right-0.5 min-w-[14px] h-[14px] flex items-center justify-center rounded-full text-[8px] font-bold" style={{ background: 'var(--accent)', color: 'white' }}>
                   {unreadNotifications > 99 ? '99+' : unreadNotifications}
                 </span>
               )}
             </Link>
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors"
+              className="inline-flex items-center justify-center p-2 rounded-md"
+              style={{ color: 'var(--text-secondary)' }}
               aria-label="メニューを開く"
             >
-              {isMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <nav className="md:hidden border-t border-slate-200 py-2">
-            <div className="space-y-1">
+          <nav className="md:hidden py-2 border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="space-y-0.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
@@ -175,12 +186,13 @@ export function Header() {
                     key={item.href}
                     href={item.href}
                     onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium"
+                    style={{ color: 'var(--text-secondary)' }}
                   >
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
                     {item.badge && (
-                      <span className="ml-auto min-w-[20px] h-[20px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                      <span className="ml-auto min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1" style={{ background: 'var(--accent)', color: 'white' }}>
                         {item.badge > 99 ? '99+' : item.badge}
                       </span>
                     )}
@@ -191,19 +203,18 @@ export function Header() {
                 <Link
                   href="/admin"
                   onClick={closeMenu}
-                  className="flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-amber-700 hover:bg-amber-50 transition-colors"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium"
+                  style={{ color: 'var(--warning)' }}
                 >
                   <Shield className="w-4 h-4" />
                   <span>管理パネル</span>
                 </Link>
               )}
               <button
-                onClick={() => {
-                  closeMenu();
-                  handleLogout();
-                }}
+                onClick={() => { closeMenu(); handleLogout(); }}
                 disabled={isLoggingOut}
-                className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-700 hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium disabled:opacity-40"
+                style={{ color: 'var(--danger)' }}
               >
                 <LogOut className="w-4 h-4" />
                 <span>ログアウト</span>
