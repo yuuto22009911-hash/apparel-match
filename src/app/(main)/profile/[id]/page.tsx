@@ -6,6 +6,7 @@ import { USER_TYPES } from '@/lib/constants';
 import FavoriteButton from '@/components/profile/FavoriteButton';
 import StartChatButton from '@/components/chat/StartChatButton';
 import ReviewList from '@/components/review/ReviewList';
+import ShareButton from '@/components/shared/ShareButton';
 
 export const metadata = {
   title: 'プロフィール',
@@ -89,6 +90,11 @@ export default async function ProfilePage({ params }: PageProps) {
                     <Link href={`/inquiry/${id}`} className="btn-glass px-4 py-2.5 text-sm">
                       問い合わせ
                     </Link>
+                    <ShareButton
+                      title={`${typedProfile.display_name} | MONOFLORAS`}
+                      text={`${typedProfile.display_name}さんのプロフィール — ${userTypeLabel}`}
+                      compact
+                    />
                     <Link href={`/report/${id}`} className="px-3 py-2.5 rounded-xl text-xs font-medium transition-colors"
                       style={{ color: 'var(--text-muted)' }}>
                       通報

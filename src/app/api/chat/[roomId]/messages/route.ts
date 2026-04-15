@@ -151,6 +151,37 @@ export async function POST(
       console.error('Error updating chat room:', updateError);
     }
 
+    // Fire-and-forget: trigger email notification for the recipient
+    try {
+      const recipientId = room.user1_id === user.id ? room.user2_id : room.user1_id;
+      if (recipientId) {
+        // Get sender profile name
+        const { data: senderProfile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+
+        const senderName = senderProfile?.display_name || 'ユーザー';
+        const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+
+        // Non-blocking fetch to email-notify endpoint
+        fetch(`${baseUrl}/api/email-notify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipientId,
+            senderName,
+            messagePreview: content.trim(),
+            roomId,
+          }),
+        }).catch((err) => console.error('Email notify fire-and-forget error:', err));
+      }
+    } catch (emailErr) {
+      // Never let email failure affect message delivery
+      console.error('Email notification trigger error:', emailErr);
+    }
+
     return NextResponse.json({ data: message as ChatMessage }, { status: 201 });
   } catch (error) {
     console.error('Error sending message:', error);

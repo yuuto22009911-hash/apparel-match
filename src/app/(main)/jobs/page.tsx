@@ -39,7 +39,7 @@ export default function JobsPage() {
       setLoading(true);
       let query = supabase
         .from('jobs')
-        .select('*, profiles!jobs_owner_id_fkey(*)', { count: 'exact' })
+        .select('*, profiles!owner_id(*)', { count: 'exact' })
         .eq('status', 'open');
 
       if (category) query = query.eq('category', category);

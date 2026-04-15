@@ -142,12 +142,20 @@ export default function ChatPage() {
   };
 
   const createGroupRoom = async () => {
-    if (!currentUserId || selectedUsers.length < 2 || !groupName.trim()) return;
+    if (!currentUserId || selectedUsers.length < 1) return;
     setCreating(true);
     try {
+      // Auto-generate group name if empty
+      const finalName = groupName.trim() || selectedUsers.map(u => u.display_name).join(', ');
+
       const { data: room, error } = await supabase
         .from('chat_rooms')
-        .insert({ is_group: true, name: groupName.trim(), user1_id: null, user2_id: null })
+        .insert({
+          is_group: true,
+          name: finalName,
+          user1_id: currentUserId,
+          user2_id: selectedUsers[0]?.id || null,
+        })
         .select()
         .single();
       if (error || !room) throw error;
@@ -157,7 +165,8 @@ export default function ChatPage() {
         user_id: uid,
         role: i === 0 ? 'owner' : 'member',
       }));
-      await supabase.from('chat_room_members').insert(members);
+      const { error: memberError } = await supabase.from('chat_room_members').insert(members);
+      if (memberError) throw memberError;
 
       closeModal();
       router.push(`/chat/${room.id}`);
@@ -185,7 +194,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>チャット</h1>
@@ -428,14 +437,14 @@ export default function ChatPage() {
               <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                 <button
                   onClick={createGroupRoom}
-                  disabled={selectedUsers.length < 2 || !groupName.trim() || creating}
+                  disabled={selectedUsers.length < 1 || creating}
                   className="w-full py-2.5 rounded-lg text-sm font-medium disabled:opacity-30"
                   style={{ background: 'var(--accent)', color: 'white' }}
                 >
                   {creating ? '作成中...' : `グループを作成（${selectedUsers.length}人選択中）`}
                 </button>
                 <p className="text-center text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
-                  2人以上選択してください
+                  {selectedUsers.length < 1 ? 'メンバーを1人以上選択してください' : 'グループ名は空欄なら自動生成されます'}
                 </p>
               </div>
             )}

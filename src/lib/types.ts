@@ -20,6 +20,8 @@ export interface Profile {
   specialty_category: string | null;
   available_for_work: boolean;
   min_budget: number | null;
+  email: string | null;
+  email_notifications: boolean;
   is_public: boolean;
   status?: 'pending' | 'approved' | 'rejected' | 'banned';
   is_admin?: boolean;

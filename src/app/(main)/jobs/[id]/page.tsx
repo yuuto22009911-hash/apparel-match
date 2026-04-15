@@ -9,6 +9,7 @@ import type { Job, Profile, JobProposal } from '@/lib/types';
 import { MapPin, Calendar, Banknote, Clock, MessageSquare, Star, ArrowLeft, Check, X as XIcon } from 'lucide-react';
 import StartChatButton from '@/components/chat/StartChatButton';
 import ReviewForm from '@/components/review/ReviewForm';
+import ShareButton from '@/components/shared/ShareButton';
 
 interface JobWithOwner extends Job {
   profiles: Profile;
@@ -40,7 +41,7 @@ export default function JobDetailPage() {
 
         const { data: jobData, error: jobError } = await supabase
           .from('jobs')
-          .select('*, profiles!jobs_owner_id_fkey(*)')
+          .select('*, profiles!owner_id(*)')
           .eq('id', id)
           .single();
 
@@ -154,7 +155,14 @@ export default function JobDetailPage() {
           </span>
         </div>
 
-        <h1 className="text-2xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>{job.title}</h1>
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{job.title}</h1>
+          <ShareButton
+            title={`${job.title} | MONOFLORAS`}
+            text={`${job.title} — ${JOB_CATEGORIES[job.category as keyof typeof JOB_CATEGORIES] || job.category}`}
+            compact
+          />
+        </div>
 
         {/* Metadata Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

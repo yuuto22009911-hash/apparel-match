@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { USER_TYPES, PREFECTURES, SKILL_TAGS, SPECIALTY_CATEGORIES } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
-import { Camera, Globe, ExternalLink, Link2, CheckCircle2 } from 'lucide-react';
+import { Camera, Globe, ExternalLink, Link2, CheckCircle2, Bell } from 'lucide-react';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -33,6 +33,7 @@ export default function ProfileEditPage() {
     specialty_category: '',
     available_for_work: true,
     min_budget: '',
+    email_notifications: true,
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -79,6 +80,7 @@ export default function ProfileEditPage() {
           specialty_category: p.specialty_category || '',
           available_for_work: p.available_for_work ?? true,
           min_budget: p.min_budget ? String(p.min_budget) : '',
+          email_notifications: p.email_notifications ?? true,
         });
         if (p.avatar_url) setAvatarPreview(p.avatar_url);
       } catch {
@@ -157,6 +159,7 @@ export default function ProfileEditPage() {
         specialty_category: formData.specialty_category || null,
         available_for_work: formData.available_for_work,
         min_budget: formData.min_budget ? parseInt(formData.min_budget) : null,
+        email_notifications: formData.email_notifications,
         avatar_url,
         updated_at: new Date().toISOString(),
       };
@@ -426,6 +429,26 @@ export default function ProfileEditPage() {
               <label htmlFor="company_name" className={labelClass} style={labelStyle}>会社・屋号</label>
               <input type="text" id="company_name" name="company_name" value={formData.company_name} onChange={handleInputChange}
                 className={inputClass} style={inputStyle} />
+            </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>通知設定</h3>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setFormData(prev => ({ ...prev, email_notifications: !prev.email_notifications }))}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: formData.email_notifications ? 'rgba(124,91,240,0.1)' : 'var(--surface-2)',
+                  color: formData.email_notifications ? 'var(--accent-light)' : 'var(--text-muted)',
+                  border: `1px solid ${formData.email_notifications ? 'rgba(124,91,240,0.3)' : 'var(--border)'}`,
+                }}>
+                <Bell className="w-4 h-4" />
+                {formData.email_notifications ? 'メール通知 ON' : 'メール通知 OFF'}
+              </button>
+              <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                メッセージ受信時にメールでお知らせします（30分間隔）
+              </p>
             </div>
           </div>
 

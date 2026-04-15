@@ -20,7 +20,7 @@ export default async function DashboardPage() {
   // Fetch latest open jobs (the "hook" — variable reward)
   const { data: recentJobs } = await supabase
     .from('jobs')
-    .select('*, profiles!jobs_owner_id_fkey(display_name, avatar_url)')
+    .select('*, profiles!owner_id(display_name, avatar_url)')
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(5);
