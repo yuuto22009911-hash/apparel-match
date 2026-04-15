@@ -158,14 +158,16 @@ export default function ChatRoomPage() {
 
     try {
       setSending(true);
-      const { error: sendError } = await supabase
-        .from('chat_messages')
-        .insert({ room_id: roomId, sender_id: currentUserId, content, is_read: false });
-      if (sendError) throw sendError;
+      const res = await fetch(`/api/chat/${roomId}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
 
-      await supabase.from('chat_rooms')
-        .update({ last_message: content, last_message_at: new Date().toISOString() })
-        .eq('id', roomId);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || 'メッセージ送信に失敗しました');
+      }
 
       // Remove optimistic message (realtime will add the real one)
       setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
