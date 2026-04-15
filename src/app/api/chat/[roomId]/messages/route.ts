@@ -157,13 +157,17 @@ export async function POST(
     }
 
     // Send email notification directly (no fire-and-forget)
+    let emailDebug: Record<string, unknown> = { attempted: false };
     try {
       const recipientId = room.user1_id === user.id ? room.user2_id : room.user1_id;
+      emailDebug.recipientId = recipientId;
+
       if (recipientId) {
         // Cooldown check
         const now = Date.now();
         const lastNotified = lastNotifiedMap.get(recipientId) || 0;
         const withinCooldown = (now - lastNotified) < COOLDOWN_MS;
+        emailDebug.withinCooldown = withinCooldown;
 
         if (!withinCooldown) {
           const [senderRes, recipientRes] = await Promise.all([
@@ -171,10 +175,17 @@ export async function POST(
             supabase.from('profiles').select('display_name, email, email_notifications').eq('id', recipientId).single(),
           ]);
 
+          emailDebug.senderData = senderRes.data;
+          emailDebug.senderError = senderRes.error?.message;
+          emailDebug.recipientData = { email: recipientRes.data?.email ? '***' : null, notifications: recipientRes.data?.email_notifications, name: recipientRes.data?.display_name };
+          emailDebug.recipientError = recipientRes.error?.message;
+
           const senderName = senderRes.data?.display_name || 'ユーザー';
           const recipient = recipientRes.data;
 
           if (recipient?.email && recipient.email_notifications !== false) {
+            emailDebug.attempted = true;
+            emailDebug.hasApiKey = !!process.env.RESEND_API_KEY;
             await sendMessageNotification({
               toEmail: recipient.email,
               toName: recipient.display_name || 'ユーザー',
@@ -184,15 +195,18 @@ export async function POST(
               unreadCount: 1,
             });
             lastNotifiedMap.set(recipientId, now);
+            emailDebug.sent = true;
+          } else {
+            emailDebug.skipped = !recipient?.email ? 'no_email' : 'notifications_off';
           }
         }
       }
     } catch (emailErr) {
-      // Never let email failure affect message delivery
+      emailDebug.error = emailErr instanceof Error ? emailErr.message : String(emailErr);
       console.error('Email notification error:', emailErr);
     }
 
-    return NextResponse.json({ data: message as ChatMessage }, { status: 201 });
+    return NextResponse.json({ data: message as ChatMessage, _emailDebug: emailDebug }, { status: 201 });
   } catch (error) {
     console.error('Error sending message:', error);
     return NextResponse.json(
