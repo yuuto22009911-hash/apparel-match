@@ -11,8 +11,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-// Temporarily hardcode to test delivery — monofloras.com may not be verified in Resend
-const FROM_EMAIL = 'MONOFLORAS <onboarding@resend.dev>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'MONOFLORAS <noreply@monofloras.com>';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://apparel-match-bojj.vercel.app';
 
 interface SendMessageNotificationParams {
