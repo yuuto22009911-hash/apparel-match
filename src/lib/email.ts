@@ -38,7 +38,7 @@ export async function sendMessageNotification({
     ? `${senderName}さんほかから${unreadCount}件の未読メッセージがあります`
     : `${senderName}さんからメッセージが届きました`;
 
-  const { error } = await getResend().emails.send({
+  const result = await getResend().emails.send({
     from: FROM_EMAIL,
     to: toEmail,
     subject,
@@ -51,10 +51,12 @@ export async function sendMessageNotification({
     }),
   });
 
-  if (error) {
-    console.error('Email send error:', error);
-    throw error;
+  if (result.error) {
+    console.error('Email send error:', result.error);
+    throw new Error(JSON.stringify(result.error));
   }
+
+  return { id: result.data?.id, from: FROM_EMAIL, to: toEmail };
 }
 
 function buildMessageEmailHtml({

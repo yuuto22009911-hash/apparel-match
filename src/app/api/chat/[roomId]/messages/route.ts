@@ -187,7 +187,7 @@ export async function POST(
             emailDebug.attempted = true;
             emailDebug.hasApiKey = !!process.env.RESEND_API_KEY;
             emailDebug.usingFallback = !process.env.RESEND_API_KEY;
-            await sendMessageNotification({
+            const emailResult = await sendMessageNotification({
               toEmail: recipient.email,
               toName: recipient.display_name || 'ユーザー',
               senderName,
@@ -197,6 +197,7 @@ export async function POST(
             });
             lastNotifiedMap.set(recipientId, now);
             emailDebug.sent = true;
+            emailDebug.resendResult = emailResult;
           } else {
             emailDebug.skipped = !recipient?.email ? 'no_email' : 'notifications_off';
           }
