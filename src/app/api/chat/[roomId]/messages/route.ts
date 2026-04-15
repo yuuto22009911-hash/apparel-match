@@ -1,6 +1,11 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 import type { ChatMessage } from '@/lib/types';
+import { sendMessageNotification } from '@/lib/email';
+
+// In-memory cooldown map (30 min per recipient)
+const COOLDOWN_MS = 30 * 60 * 1000;
+const lastNotifiedMap = new Map<string, number>();
 
 export async function GET(
   request: NextRequest,
@@ -151,40 +156,40 @@ export async function POST(
       console.error('Error updating chat room:', updateError);
     }
 
-    // Fire-and-forget: trigger email notification for the recipient
+    // Send email notification directly (no fire-and-forget)
     try {
       const recipientId = room.user1_id === user.id ? room.user2_id : room.user1_id;
       if (recipientId) {
-        // Get sender + recipient profiles (we have auth here, so RLS works)
-        const [senderRes, recipientRes] = await Promise.all([
-          supabase.from('profiles').select('display_name').eq('id', user.id).single(),
-          supabase.from('profiles').select('display_name, email, email_notifications').eq('id', recipientId).single(),
-        ]);
+        // Cooldown check
+        const now = Date.now();
+        const lastNotified = lastNotifiedMap.get(recipientId) || 0;
+        const withinCooldown = (now - lastNotified) < COOLDOWN_MS;
 
-        const senderName = senderRes.data?.display_name || 'ユーザー';
-        const recipient = recipientRes.data;
+        if (!withinCooldown) {
+          const [senderRes, recipientRes] = await Promise.all([
+            supabase.from('profiles').select('display_name').eq('id', user.id).single(),
+            supabase.from('profiles').select('display_name, email, email_notifications').eq('id', recipientId).single(),
+          ]);
 
-        if (recipient?.email && recipient.email_notifications !== false) {
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || request.nextUrl.origin;
+          const senderName = senderRes.data?.display_name || 'ユーザー';
+          const recipient = recipientRes.data;
 
-          // Non-blocking fetch with all data pre-fetched
-          fetch(`${baseUrl}/api/email-notify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              recipientId,
-              recipientEmail: recipient.email,
-              recipientName: recipient.display_name,
+          if (recipient?.email && recipient.email_notifications !== false) {
+            await sendMessageNotification({
+              toEmail: recipient.email,
+              toName: recipient.display_name || 'ユーザー',
               senderName,
               messagePreview: content.trim(),
-              roomId,
-            }),
-          }).catch((err) => console.error('Email notify fire-and-forget error:', err));
+              chatUrl: `/chat/${roomId}`,
+              unreadCount: 1,
+            });
+            lastNotifiedMap.set(recipientId, now);
+          }
         }
       }
     } catch (emailErr) {
       // Never let email failure affect message delivery
-      console.error('Email notification trigger error:', emailErr);
+      console.error('Email notification error:', emailErr);
     }
 
     return NextResponse.json({ data: message as ChatMessage }, { status: 201 });
