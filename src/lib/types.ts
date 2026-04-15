@@ -1,4 +1,4 @@
-import type { UserType } from './constants';
+import type { UserType, JobCategory, JobStatus, ProposalStatus } from './constants';
 
 // ========== Database Row Types ==========
 
@@ -17,6 +17,9 @@ export interface Profile {
   skills: string[];
   experience_years: number | null;
   company_name: string | null;
+  specialty_category: string | null;
+  available_for_work: boolean;
+  min_budget: number | null;
   is_public: boolean;
   status?: 'pending' | 'approved' | 'rejected' | 'banned';
   is_admin?: boolean;
@@ -32,6 +35,9 @@ export interface Portfolio {
   image_urls: string[];
   category: string | null;
   tags: string[];
+  item_category: string | null;
+  role: string | null;
+  client_type: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -51,6 +57,59 @@ export interface Inquiry {
   message: string;
   status: 'unread' | 'read' | 'replied' | 'closed';
   created_at: string;
+}
+
+// ========== Phase 3 Types ==========
+
+export interface Job {
+  id: string;
+  owner_id: string;
+  title: string;
+  description: string;
+  category: JobCategory;
+  budget_min: number | null;
+  budget_max: number | null;
+  deadline: string | null;
+  tags: string[];
+  status: JobStatus;
+  prefecture: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobWithOwner extends Job {
+  owner: Profile;
+  proposal_count?: number;
+}
+
+export interface JobProposal {
+  id: string;
+  job_id: string;
+  proposer_id: string;
+  message: string;
+  proposed_price: number | null;
+  proposed_deadline: string | null;
+  status: ProposalStatus;
+  created_at: string;
+}
+
+export interface JobProposalWithProfile extends JobProposal {
+  proposer: Profile;
+}
+
+export interface Review {
+  id: string;
+  job_id: string;
+  reviewer_id: string;
+  reviewee_id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface ReviewWithProfile extends Review {
+  reviewer: Profile;
+  job: Job;
 }
 
 // ========== API Request/Response Types ==========
@@ -170,7 +229,10 @@ export type NotificationType =
   | 'favorite_added'
   | 'profile_approved'
   | 'profile_rejected'
-  | 'report_resolved';
+  | 'report_resolved'
+  | 'job_proposal_received'
+  | 'proposal_accepted'
+  | 'review_received';
 
 export interface Report {
   id: string;

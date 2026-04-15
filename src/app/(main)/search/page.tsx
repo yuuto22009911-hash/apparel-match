@@ -4,9 +4,9 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { USER_TYPES, PREFECTURES, DEFAULT_PAGE_SIZE } from '@/lib/constants';
+import { USER_TYPES, PREFECTURES, DEFAULT_PAGE_SIZE, SKILL_TAGS } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
-import { Search, ChevronLeft, ChevronRight, MapPin, Briefcase } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, MapPin, Briefcase, CheckCircle2, X } from 'lucide-react';
 import StartChatButton from '@/components/chat/StartChatButton';
 
 export default function SearchPage() {
@@ -30,10 +30,13 @@ function SearchContent() {
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [userType, setUserType] = useState(searchParams.get('user_type') || '');
   const [prefecture, setPrefecture] = useState(searchParams.get('prefecture') || '');
   const [keyword, setKeyword] = useState(searchParams.get('keyword') || '');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableOnly, setAvailableOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
 
   const pageSize = DEFAULT_PAGE_SIZE;
@@ -47,6 +50,24 @@ function SearchContent() {
     getUser();
   }, []);
 
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setUserType('');
+    setPrefecture('');
+    setKeyword('');
+    setSelectedTags([]);
+    setAvailableOnly(false);
+    setCurrentPage(1);
+  };
+
+  const activeFilterCount = [userType, prefecture, keyword, availableOnly, selectedTags.length > 0].filter(Boolean).length;
+
   const fetchProfiles = async () => {
     try {
       setLoading(true);
@@ -55,6 +76,10 @@ function SearchContent() {
       if (userType) query = query.eq('user_type', userType);
       if (prefecture) query = query.eq('prefecture', prefecture);
       if (keyword) query = query.or(`display_name.ilike.%${keyword}%,bio.ilike.%${keyword}%,company_name.ilike.%${keyword}%`);
+      if (availableOnly) query = query.eq('available_for_work', true);
+      if (selectedTags.length > 0) {
+        query = query.overlaps('skills', selectedTags);
+      }
       const offset = (currentPage - 1) * pageSize;
       query = query.range(offset, offset + pageSize - 1).order('created_at', { ascending: false });
       const { data, count, error: fetchError } = await query;
@@ -69,7 +94,7 @@ function SearchContent() {
     }
   };
 
-  useEffect(() => { fetchProfiles(); }, [userType, prefecture, keyword, currentPage]);
+  useEffect(() => { fetchProfiles(); }, [userType, prefecture, keyword, currentPage, selectedTags, availableOnly]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -107,14 +132,82 @@ function SearchContent() {
               className="w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:border-transparent"
               style={{ background: 'var(--surface-solid-2)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
           </div>
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
+            <button onClick={() => setShowFilters(!showFilters)}
+              className="btn-glass flex-1 flex items-center justify-center gap-2 py-3 text-sm relative">
+              絞り込み
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full text-[10px] font-bold px-1"
+                  style={{ background: 'var(--accent)', color: 'white' }}>
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
             <button onClick={() => setCurrentPage(1)}
-              className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
-              <Search className="w-4 h-4" /> 検索
+              className="btn-primary flex items-center justify-center gap-2 py-3 px-5 text-sm">
+              <Search className="w-4 h-4" />
             </button>
           </div>
         </div>
+
+        {/* Extended Filters */}
+        {showFilters && (
+          <div className="mt-6 pt-6 space-y-5" style={{ borderTop: '1px solid var(--border)' }}>
+            {/* Available toggle */}
+            <div className="flex items-center gap-3">
+              <button onClick={() => { setAvailableOnly(!availableOnly); setCurrentPage(1); }}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all"
+                style={{
+                  background: availableOnly ? 'var(--accent-subtle)' : 'var(--surface-2)',
+                  color: availableOnly ? 'var(--accent-light)' : 'var(--text-muted)',
+                  border: `1px solid ${availableOnly ? 'var(--accent)' : 'var(--border)'}`,
+                }}>
+                <CheckCircle2 className="w-4 h-4" />
+                仕事受付中のみ
+              </button>
+              {activeFilterCount > 0 && (
+                <button onClick={clearFilters}
+                  className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium transition-colors"
+                  style={{ color: 'var(--text-muted)' }}>
+                  <X className="w-3 h-3" /> クリア
+                </button>
+              )}
+            </div>
+
+            {/* Skill Tags */}
+            <div>
+              <label className="block text-xs font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>スキルタグ</label>
+              <div className="flex flex-wrap gap-2">
+                {SKILL_TAGS.map(tag => (
+                  <button key={tag} onClick={() => toggleTag(tag)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    style={{
+                      background: selectedTags.includes(tag) ? 'var(--accent-subtle)' : 'var(--surface-2)',
+                      color: selectedTags.includes(tag) ? 'var(--accent-light)' : 'var(--text-muted)',
+                      border: `1px solid ${selectedTags.includes(tag) ? 'var(--accent)' : 'var(--border)'}`,
+                    }}>
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Selected Tags Summary */}
+      {selectedTags.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs" style={{ color: 'var(--text-muted)' }}>選択中:</span>
+          {selectedTags.map(tag => (
+            <span key={tag} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+              style={{ background: 'var(--accent-subtle)', color: 'var(--accent-light)', border: '1px solid var(--accent)' }}>
+              {tag}
+              <button onClick={() => toggleTag(tag)} className="hover:opacity-70"><X className="w-3 h-3" /></button>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
@@ -153,7 +246,15 @@ function SearchContent() {
                             </div>
                           </div>
                         )}
-                        <span className="tag">{USER_TYPES[profile.user_type]}</span>
+                        <div className="flex items-center gap-2">
+                          {profile.available_for_work && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium"
+                              style={{ background: 'rgba(52,211,153,0.1)', color: 'var(--success)', border: '1px solid rgba(52,211,153,0.2)' }}>
+                              <CheckCircle2 className="w-3 h-3" /> 受付中
+                            </span>
+                          )}
+                          <span className="tag">{USER_TYPES[profile.user_type]}</span>
+                        </div>
                       </div>
 
                       <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>

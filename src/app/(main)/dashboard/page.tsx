@@ -108,8 +108,10 @@ export default async function DashboardPage() {
 
   const quickActions = [
     { href: '/search', label: 'パートナーを探す', desc: '最適な人材を検索', icon: '🔍' },
+    { href: '/jobs', label: '案件ボード', desc: '案件を探す・投稿', icon: '📋' },
     { href: '/portfolio/new', label: 'ポートフォリオ追加', desc: '作品を公開する', icon: '📸' },
     { href: '/chat', label: 'メッセージ', desc: 'チャットを確認', icon: '💬' },
+    { href: '/jobs/my', label: 'マイ案件', desc: '投稿・提案を管理', icon: '📝' },
     { href: '/profile/edit', label: 'プロフィール', desc: '情報を編集する', icon: '✏️' },
   ];
 
@@ -140,7 +142,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Quick Actions — Bento */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {quickActions.map((action, i) => (
           <Link key={action.href} href={action.href}
             className={`glass glass-hover p-5 block group animate-fade-in animate-fade-in-delay-${Math.min(i + 1, 4)}`}>

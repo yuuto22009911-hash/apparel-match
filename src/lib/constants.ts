@@ -1,7 +1,9 @@
-// ユーザー種別
+// ユーザー種別（Phase 3 拡張）
 export const USER_TYPES = {
   designer: 'デザイナー',
   patternmaker: 'パタンナー',
+  seamstress: '縫製職人',
+  fabric: '生地屋',
   brand: 'ブランド',
   factory: '工場 / OEM',
 } as const;
@@ -29,6 +31,88 @@ export const PORTFOLIO_CATEGORIES = {
   sportswear: 'スポーツウェア',
   uniforms: 'ユニフォーム',
   other: 'その他',
+} as const;
+
+// ポートフォリオ アイテムカテゴリ
+export const ITEM_CATEGORIES = {
+  onepiece: 'ワンピース',
+  jacket: 'ジャケット',
+  knit: 'ニット',
+  bag: 'バッグ',
+  pants: 'パンツ',
+  skirt: 'スカート',
+  shirt: 'シャツ',
+  coat: 'コート',
+  other: 'その他',
+} as const;
+
+// ポートフォリオ 役割
+export const PORTFOLIO_ROLES = {
+  pattern: 'パターン作成',
+  sewing: '縫製',
+  design: 'デザイン',
+  oem: 'OEM管理',
+  fabric_sourcing: '生地手配',
+  other: 'その他',
+} as const;
+
+// クライアントタイプ
+export const CLIENT_TYPES = {
+  brand: 'ブランド',
+  individual: '個人デザイナー',
+  manufacturer: 'アパレルメーカー',
+  other: 'その他',
+} as const;
+
+// 案件カテゴリ
+export const JOB_CATEGORIES = {
+  pattern: 'パターン作成',
+  sewing: '縫製',
+  fabric: '生地手配',
+  oem: 'OEM / 量産',
+  other: 'その他',
+} as const;
+
+export type JobCategory = keyof typeof JOB_CATEGORIES;
+
+// 案件ステータス
+export const JOB_STATUSES = {
+  open: '募集中',
+  in_progress: '進行中',
+  completed: '完了',
+  cancelled: 'キャンセル',
+} as const;
+
+export type JobStatus = keyof typeof JOB_STATUSES;
+
+// 提案ステータス
+export const PROPOSAL_STATUSES = {
+  pending: '審査中',
+  accepted: '採用',
+  rejected: '不採用',
+  withdrawn: '取り下げ',
+} as const;
+
+export type ProposalStatus = keyof typeof PROPOSAL_STATUSES;
+
+// スキルタグ
+export const SKILL_TAGS = [
+  'レディース', 'メンズ', 'キッズ',
+  'ワンピース', 'ジャケット', 'ニット', 'デニム', 'バッグ', 'パンツ', 'スカート',
+  '小ロット対応', 'サンプル対応', '量産対応',
+  'パターン修正', 'グレーディング',
+  'オーガニック素材', 'サステナブル',
+  'CAD対応', '3Dパターン', '手縫い',
+] as const;
+
+// 専門カテゴリ
+export const SPECIALTY_CATEGORIES = {
+  pattern: 'パターン',
+  sewing: '縫製',
+  fabric: '生地',
+  oem: 'OEM',
+  design: 'デザイン',
+  brand_management: 'ブランド運営',
 } as const;
 
 // 問い合わせステータス
@@ -72,6 +156,9 @@ export const NOTIFICATION_TYPES = {
   profile_approved: 'プロフィール承認',
   profile_rejected: 'プロフィール却下',
   report_resolved: '通報対応完了',
+  job_proposal_received: '提案受信',
+  proposal_accepted: '提案採用',
+  review_received: 'レビュー受信',
 } as const;
 
 // ページネーション

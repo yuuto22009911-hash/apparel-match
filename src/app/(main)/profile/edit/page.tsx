@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { USER_TYPES, PREFECTURES } from '@/lib/constants';
+import { USER_TYPES, PREFECTURES, SKILL_TAGS, SPECIALTY_CATEGORIES } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
-import { Camera, Globe, ExternalLink, Link2 } from 'lucide-react';
+import { Camera, Globe, ExternalLink, Link2, CheckCircle2 } from 'lucide-react';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -27,13 +27,17 @@ export default function ProfileEditPage() {
     instagram_url: '',
     twitter_url: '',
     sns_url: '',
-    skills: '',
+    skills: [] as string[],
     experience_years: '',
     company_name: '',
+    specialty_category: '',
+    available_for_work: true,
+    min_budget: '',
   });
 
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [customSkill, setCustomSkill] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -57,7 +61,7 @@ export default function ProfileEditPage() {
           return;
         }
 
-        const p = profileData as Profile & { instagram_url?: string; twitter_url?: string; sns_url?: string };
+        const p = profileData as Profile;
         setProfile(p);
         setFormData({
           display_name: p.display_name || '',
@@ -69,9 +73,12 @@ export default function ProfileEditPage() {
           instagram_url: p.instagram_url || '',
           twitter_url: p.twitter_url || '',
           sns_url: p.sns_url || '',
-          skills: (p.skills || []).join(', '),
+          skills: p.skills || [],
           experience_years: p.experience_years ? String(p.experience_years) : '',
           company_name: p.company_name || '',
+          specialty_category: p.specialty_category || '',
+          available_for_work: p.available_for_work ?? true,
+          min_budget: p.min_budget ? String(p.min_budget) : '',
         });
         if (p.avatar_url) setAvatarPreview(p.avatar_url);
       } catch {
@@ -85,6 +92,21 @@ export default function ProfileEditPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const toggleSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.includes(skill) ? prev.skills.filter(s => s !== skill) : [...prev.skills, skill],
+    }));
+  };
+
+  const addCustomSkill = () => {
+    const trimmed = customSkill.trim();
+    if (trimmed && !formData.skills.includes(trimmed)) {
+      setFormData(prev => ({ ...prev, skills: [...prev.skills, trimmed] }));
+      setCustomSkill('');
+    }
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,9 +151,12 @@ export default function ProfileEditPage() {
         instagram_url: formData.instagram_url || null,
         twitter_url: formData.twitter_url || null,
         sns_url: formData.sns_url || null,
-        skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : [],
+        skills: formData.skills,
         experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
         company_name: formData.company_name || null,
+        specialty_category: formData.specialty_category || null,
+        available_for_work: formData.available_for_work,
+        min_budget: formData.min_budget ? parseInt(formData.min_budget) : null,
         avatar_url,
         updated_at: new Date().toISOString(),
       };
@@ -272,8 +297,45 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
+          {/* Work Status Section */}
+          <div className="pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>仕事の受付</h3>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setFormData(prev => ({ ...prev, available_for_work: !prev.available_for_work }))}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all"
+                  style={{
+                    background: formData.available_for_work ? 'rgba(52,211,153,0.1)' : 'var(--surface-2)',
+                    color: formData.available_for_work ? 'var(--success)' : 'var(--text-muted)',
+                    border: `1px solid ${formData.available_for_work ? 'rgba(52,211,153,0.3)' : 'var(--border)'}`,
+                  }}>
+                  <CheckCircle2 className="w-4 h-4" />
+                  {formData.available_for_work ? '仕事受付中' : '受付停止中'}
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="specialty_category" className={labelClass} style={labelStyle}>専門カテゴリ</label>
+                  <select id="specialty_category" name="specialty_category" value={formData.specialty_category} onChange={handleInputChange}
+                    className={inputClass} style={inputStyle}>
+                    <option value="">選択</option>
+                    {Object.entries(SPECIALTY_CATEGORIES).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="min_budget" className={labelClass} style={labelStyle}>最低受注金額（円）</label>
+                  <input type="number" id="min_budget" name="min_budget" value={formData.min_budget} onChange={handleInputChange}
+                    placeholder="例: 30000" min="0"
+                    className={inputClass} style={inputStyle} />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* SNS Links Section */}
-          <div className="pt-2">
+          <div className="pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>SNS・Webサイト</h3>
             <div className="space-y-4">
               <div>
@@ -311,13 +373,46 @@ export default function ProfileEditPage() {
             </div>
           </div>
 
-          {/* Skills */}
-          <div>
-            <label htmlFor="skills" className={labelClass} style={labelStyle}>スキル（カンマ区切り）</label>
-            <input type="text" id="skills" name="skills" value={formData.skills} onChange={handleInputChange}
-              placeholder="例: パターン制作, 裁断, ニット, メンズ"
-              className={inputClass} style={inputStyle} />
-            <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>検索で見つけてもらいやすくなります</p>
+          {/* Skills Section */}
+          <div className="pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>スキル・得意分野</h3>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {SKILL_TAGS.map(tag => (
+                <button key={tag} type="button" onClick={() => toggleSkill(tag)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                  style={{
+                    background: formData.skills.includes(tag) ? 'var(--accent-subtle)' : 'var(--surface-2)',
+                    color: formData.skills.includes(tag) ? 'var(--accent-light)' : 'var(--text-muted)',
+                    border: `1px solid ${formData.skills.includes(tag) ? 'var(--accent)' : 'var(--border)'}`,
+                  }}>
+                  {tag}
+                </button>
+              ))}
+            </div>
+            {/* Custom skill */}
+            <div className="flex gap-2">
+              <input type="text" value={customSkill} onChange={(e) => setCustomSkill(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomSkill(); } }}
+                placeholder="その他のスキルを追加..."
+                className={inputClass} style={inputStyle} />
+              <button type="button" onClick={addCustomSkill}
+                className="btn-glass px-4 py-2 text-sm flex-shrink-0">追加</button>
+            </div>
+            {/* Selected custom skills (non-preset ones) */}
+            {formData.skills.filter(s => !SKILL_TAGS.includes(s as typeof SKILL_TAGS[number])).length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-3">
+                {formData.skills.filter(s => !SKILL_TAGS.includes(s as typeof SKILL_TAGS[number])).map(skill => (
+                  <span key={skill} className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium"
+                    style={{ background: 'var(--accent-subtle)', color: 'var(--accent-light)', border: '1px solid var(--accent)' }}>
+                    {skill}
+                    <button type="button" onClick={() => toggleSkill(skill)} className="hover:opacity-70">
+                      <span className="text-xs">×</span>
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] mt-2" style={{ color: 'var(--text-muted)' }}>検索で見つけてもらいやすくなります</p>
           </div>
 
           {/* Experience + Company */}

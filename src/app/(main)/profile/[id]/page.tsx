@@ -5,6 +5,7 @@ import type { Profile, Portfolio, ProfileWithPortfolios } from '@/lib/types';
 import { USER_TYPES } from '@/lib/constants';
 import FavoriteButton from '@/components/profile/FavoriteButton';
 import StartChatButton from '@/components/chat/StartChatButton';
+import ReviewList from '@/components/review/ReviewList';
 
 export const metadata = {
   title: 'プロフィール',
@@ -213,6 +214,9 @@ export default async function ProfilePage({ params }: PageProps) {
           <p className="text-sm" style={{ color: 'var(--text-muted)' }}>ポートフォリオがまだ登録されていません</p>
         </div>
       )}
+
+      {/* Reviews */}
+      <ReviewList userId={id} />
     </div>
   );
 }

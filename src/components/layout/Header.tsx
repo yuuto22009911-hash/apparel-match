@@ -16,6 +16,7 @@ import {
   MessagesSquare,
   Shield,
   Home,
+  FileText,
 } from 'lucide-react';
 
 export function Header() {
@@ -62,6 +63,7 @@ export function Header() {
   const navItems = [
     { href: '/dashboard', label: 'ホーム', icon: Home },
     { href: '/search', label: '検索', icon: Search },
+    { href: '/jobs', label: '案件', icon: FileText },
     { href: '/chat', label: 'チャット', icon: MessagesSquare },
     {
       href: '/notifications',

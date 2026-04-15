@@ -3,13 +3,16 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { PORTFOLIO_CATEGORIES } from '@/lib/constants';
-import { Upload, X, Loader2, ImagePlus } from 'lucide-react';
+import { PORTFOLIO_CATEGORIES, ITEM_CATEGORIES, PORTFOLIO_ROLES, CLIENT_TYPES } from '@/lib/constants';
+import { X, Loader2, ImagePlus } from 'lucide-react';
 
 interface FormData {
   title: string;
   description: string;
   category: string;
+  item_category: string;
+  role: string;
+  client_type: string;
   tags: string;
   images: File[];
 }
@@ -25,6 +28,9 @@ export default function NewPortfolioPage() {
     title: '',
     description: '',
     category: '',
+    item_category: '',
+    role: '',
+    client_type: '',
     tags: '',
     images: [],
   });
@@ -97,6 +103,9 @@ export default function NewPortfolioPage() {
         title: formData.title.trim(),
         description: formData.description.trim(),
         category: formData.category,
+        item_category: formData.item_category || null,
+        role: formData.role || null,
+        client_type: formData.client_type || null,
         image_urls: imageUrls,
         tags: tagsArray,
       });
@@ -143,18 +152,60 @@ export default function NewPortfolioPage() {
             className={inputClass + " resize-none"} style={inputStyle} disabled={isLoading} />
         </div>
 
-        {/* Category */}
-        <div>
-          <label htmlFor="category" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
-            カテゴリ *
-          </label>
-          <select id="category" name="category" value={formData.category} onChange={handleInputChange}
-            className={inputClass} style={inputStyle} disabled={isLoading}>
-            <option value="">選択してください</option>
-            {Object.entries(PORTFOLIO_CATEGORIES).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
+        {/* Category + Item Category */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="category" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              カテゴリ *
+            </label>
+            <select id="category" name="category" value={formData.category} onChange={handleInputChange}
+              className={inputClass} style={inputStyle} disabled={isLoading}>
+              <option value="">選択してください</option>
+              {Object.entries(PORTFOLIO_CATEGORIES).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="item_category" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              アイテム種類
+            </label>
+            <select id="item_category" name="item_category" value={formData.item_category} onChange={handleInputChange}
+              className={inputClass} style={inputStyle} disabled={isLoading}>
+              <option value="">選択してください</option>
+              {Object.entries(ITEM_CATEGORIES).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Role + Client Type */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="role" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              担当した役割
+            </label>
+            <select id="role" name="role" value={formData.role} onChange={handleInputChange}
+              className={inputClass} style={inputStyle} disabled={isLoading}>
+              <option value="">選択してください</option>
+              {Object.entries(PORTFOLIO_ROLES).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="client_type" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
+              クライアント種別
+            </label>
+            <select id="client_type" name="client_type" value={formData.client_type} onChange={handleInputChange}
+              className={inputClass} style={inputStyle} disabled={isLoading}>
+              <option value="">選択してください</option>
+              {Object.entries(CLIENT_TYPES).map(([key, label]) => (
+                <option key={key} value={key}>{label}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Tags */}
