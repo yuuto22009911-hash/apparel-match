@@ -1,183 +1,182 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import type { Profile } from '@/lib/types';
+import type { Profile, Job } from '@/lib/types';
+import { USER_TYPES, JOB_CATEGORIES } from '@/lib/constants';
 
-export const metadata = {
-  title: 'ダッシュボード',
-};
+export const metadata = { title: 'ホーム' };
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect('/login');
-  }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
   const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (profileError || !profile) {
-    redirect('/profile/edit');
-  }
-
-  const { count: portfolioCount } = await supabase
-    .from('portfolios')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', user.id);
-
-  const { count: favoriteCount } = await supabase
-    .from('favorites')
-    .select('*', { count: 'exact', head: true })
-    .eq('target_user_id', user.id);
-
-  const { data: inquiries, count: unreadCount } = await supabase
-    .from('inquiries')
-    .select('*', { count: 'exact' })
-    .eq('to_user_id', user.id)
-    .eq('status', 'unread');
+    .from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if (profileError || !profile) redirect('/profile/edit');
 
   const typedProfile = profile as Profile;
+
+  // Fetch latest open jobs (the "hook" — variable reward)
+  const { data: recentJobs } = await supabase
+    .from('jobs')
+    .select('*, profiles!jobs_owner_id_fkey(display_name, avatar_url)')
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(5);
+
+  // Fetch newest users (social proof)
+  const { data: newUsers } = await supabase
+    .from('profiles')
+    .select('id, display_name, avatar_url, user_type, prefecture, skills')
+    .eq('is_public', true)
+    .neq('id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(8);
+
+  // Quick stats
+  const [{ count: portfolioCount }, { count: favoriteCount }, { count: unreadCount }] = await Promise.all([
+    supabase.from('portfolios').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('favorites').select('*', { count: 'exact', head: true }).eq('target_user_id', user.id),
+    supabase.from('inquiries').select('*', { count: 'exact', head: true }).eq('to_user_id', user.id).eq('status', 'unread'),
+  ]);
 
   const statusBanner = () => {
     if (typedProfile.status === 'pending') {
       return (
-        <div className="mb-8 glass p-5 flex items-start gap-3 animate-fade-in" style={{ borderColor: 'rgba(251,191,36,0.2)' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(251,191,36,0.1)' }}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--warning)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--warning)' }}>プロフィール承認待ち</h3>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
-              管理者が確認中です。承認されるとすべての機能が利用できます。
-            </p>
-          </div>
+        <div className="mb-5 glass p-4 flex items-center gap-3 animate-fade-in" style={{ borderColor: 'rgba(251,191,36,0.2)' }}>
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--warning)' }} />
+          <p className="text-xs font-medium" style={{ color: 'var(--warning)' }}>プロフィール承認待ち — 管理者が確認中です</p>
         </div>
       );
     }
     if (typedProfile.status === 'rejected') {
       return (
-        <div className="mb-8 glass p-5 flex items-start gap-3 animate-fade-in" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(248,113,113,0.1)' }}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--danger)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
+        <div className="mb-5 glass p-4 flex items-center gap-3 animate-fade-in" style={{ borderColor: 'rgba(248,113,113,0.2)' }}>
+          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: 'var(--danger)' }} />
+          <div className="flex-1">
+            <p className="text-xs font-medium" style={{ color: 'var(--danger)' }}>プロフィール非承認</p>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--danger)' }}>プロフィール非承認</h3>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>プロフィールを修正して再提出してください。</p>
-            <Link href="/profile/edit" className="btn-primary inline-block mt-3 px-4 py-1.5 text-xs">
-              修正する
-            </Link>
-          </div>
-        </div>
-      );
-    }
-    if (typedProfile.status === 'banned') {
-      return (
-        <div className="mb-8 glass p-5 flex items-start gap-3 animate-fade-in" style={{ borderColor: 'var(--border)' }}>
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-2)' }}>
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-            </svg>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold" style={{ color: 'var(--text-secondary)' }}>アカウント停止</h3>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>利用規約違反によりアカウントが停止されました。</p>
-          </div>
+          <Link href="/profile/edit" className="text-xs font-medium px-3 py-1.5 rounded-lg" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)' }}>修正する</Link>
         </div>
       );
     }
     return null;
   };
 
-  const stats = [
-    { label: 'ポートフォリオ', value: portfolioCount || 0, gradient: 'linear-gradient(135deg, #7c5bf0, #a78bfa)' },
-    { label: 'お気に入りされた', value: favoriteCount || 0, gradient: 'linear-gradient(135deg, #ec4899, #f472b6)' },
-    { label: '未読メッセージ', value: unreadCount || 0, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
-  ];
-
-  const quickActions = [
-    { href: '/search', label: 'パートナーを探す', desc: '最適な人材を検索', icon: '🔍' },
-    { href: '/jobs', label: '案件ボード', desc: '案件を探す・投稿', icon: '📋' },
-    { href: '/portfolio/new', label: 'ポートフォリオ追加', desc: '作品を公開する', icon: '📸' },
-    { href: '/chat', label: 'メッセージ', desc: 'チャットを確認', icon: '💬' },
-    { href: '/jobs/my', label: 'マイ案件', desc: '投稿・提案を管理', icon: '📝' },
-    { href: '/profile/edit', label: 'プロフィール', desc: '情報を編集する', icon: '✏️' },
-  ];
+  const formatBudget = (min: number | null, max: number | null) => {
+    if (!min && !max) return null;
+    if (min && max) return `¥${min.toLocaleString()}〜¥${max.toLocaleString()}`;
+    if (min) return `¥${min.toLocaleString()}〜`;
+    return `〜¥${max!.toLocaleString()}`;
+  };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
       {statusBanner()}
 
-      {/* Welcome */}
-      <div className="mb-10 animate-fade-in">
-        <h1 className="text-3xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-          {typedProfile.display_name}
+      {/* Greeting — compact */}
+      <div className="animate-fade-in">
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
+          {typedProfile.display_name}さん
         </h1>
-        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-          ようこそ、Apparel Match へ
+        <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+          新しいパートナーや案件をチェックしよう
         </p>
       </div>
 
-      {/* Stats — Bento style */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        {stats.map((stat, i) => (
-          <div key={stat.label} className={`glass glass-hover stat-card p-6 animate-fade-in animate-fade-in-delay-${i + 1}`}>
-            <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
-            <p className="text-4xl font-bold" style={{ background: stat.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+      {/* Mini Stats Row */}
+      <div className="grid grid-cols-3 gap-3 animate-fade-in animate-fade-in-delay-1">
+        {[
+          { label: '作品', value: portfolioCount || 0, gradient: 'linear-gradient(135deg, #7c5bf0, #a78bfa)' },
+          { label: '被お気に入り', value: favoriteCount || 0, gradient: 'linear-gradient(135deg, #ec4899, #f472b6)' },
+          { label: '未読', value: unreadCount || 0, gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },
+        ].map((stat) => (
+          <div key={stat.label} className="glass p-4 text-center">
+            <p className="text-2xl font-bold" style={{ background: stat.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               {stat.value}
             </p>
+            <p className="text-[10px] font-medium mt-1" style={{ color: 'var(--text-muted)' }}>{stat.label}</p>
           </div>
         ))}
       </div>
 
-      {/* Quick Actions — Bento */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        {quickActions.map((action, i) => (
-          <Link key={action.href} href={action.href}
-            className={`glass glass-hover p-5 block group animate-fade-in animate-fade-in-delay-${Math.min(i + 1, 4)}`}>
-            <div className="text-2xl mb-3">{action.icon}</div>
-            <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-              {action.label}
-            </h3>
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{action.desc}</p>
-          </Link>
-        ))}
-      </div>
-
-      {/* Recent Inquiries */}
-      {inquiries && inquiries.length > 0 && (
-        <div className="glass p-6 animate-fade-in animate-fade-in-delay-3">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>最新の問い合わせ</h2>
-            <Link href="/inquiries" className="text-xs font-medium" style={{ color: 'var(--accent-light)' }}>
-              すべて見る →
-            </Link>
+      {/* Latest Jobs — the "hook" */}
+      <section className="animate-fade-in animate-fade-in-delay-2">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>新着案件</h2>
+          <Link href="/jobs" className="text-xs font-medium" style={{ color: 'var(--accent-light)' }}>すべて見る →</Link>
+        </div>
+        {recentJobs && recentJobs.length > 0 ? (
+          <div className="space-y-3">
+            {(recentJobs as (Job & { profiles: { display_name: string; avatar_url: string | null } })[]).map((job) => {
+              const budget = formatBudget(job.budget_min, job.budget_max);
+              return (
+                <Link key={job.id} href={`/jobs/${job.id}`} className="glass glass-hover block p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--accent-subtle)' }}>
+                      <span className="text-xs font-bold" style={{ color: 'var(--accent-light)' }}>
+                        {JOB_CATEGORIES[job.category as keyof typeof JOB_CATEGORIES]?.charAt(0) || '他'}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{job.title}</h3>
+                      <div className="flex items-center gap-3 mt-1.5 text-[10px]" style={{ color: 'var(--text-muted)' }}>
+                        <span>{JOB_CATEGORIES[job.category as keyof typeof JOB_CATEGORIES]}</span>
+                        {budget && <span>{budget}</span>}
+                        {job.prefecture && <span>{job.prefecture}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-          <div className="space-y-2">
-            {inquiries.slice(0, 3).map((inquiry) => (
-              <div key={inquiry.id} className="flex items-center justify-between p-4 rounded-xl transition-colors"
-                style={{ background: 'var(--surface-2)' }}>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{inquiry.subject}</p>
-                  <p className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>{inquiry.message}</p>
-                </div>
-                <span className="ml-3 tag flex-shrink-0">未読</span>
-              </div>
+        ) : (
+          <div className="glass p-8 text-center">
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>まだ案件がありません</p>
+            <Link href="/jobs/new" className="inline-block mt-3 btn-primary px-5 py-2 text-xs">案件を投稿する</Link>
+          </div>
+        )}
+      </section>
+
+      {/* New Users — social proof */}
+      <section className="animate-fade-in animate-fade-in-delay-3">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>新着パートナー</h2>
+          <Link href="/search" className="text-xs font-medium" style={{ color: 'var(--accent-light)' }}>すべて見る →</Link>
+        </div>
+        {newUsers && newUsers.length > 0 ? (
+          <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {(newUsers as Pick<Profile, 'id' | 'display_name' | 'avatar_url' | 'user_type' | 'prefecture' | 'skills'>[]).map((u) => (
+              <Link key={u.id} href={`/profile/${u.id}`}
+                className="glass glass-hover flex-shrink-0 p-4 text-center"
+                style={{ width: '130px' }}>
+                {u.avatar_url ? (
+                  <img src={u.avatar_url} alt={u.display_name} className="w-12 h-12 rounded-full mx-auto object-cover mb-2" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center text-sm font-bold mb-2"
+                    style={{ background: 'var(--surface-solid-2)', color: 'var(--accent-light)' }}>
+                    {u.display_name.charAt(0)}
+                  </div>
+                )}
+                <p className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{u.display_name}</p>
+                <p className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
+                  {USER_TYPES[u.user_type]}
+                </p>
+              </Link>
             ))}
           </div>
-        </div>
-      )}
+        ) : null}
+      </section>
+
+      {/* Quick Action — Post a Job */}
+      <Link href="/jobs/new" className="glass glass-hover block p-5 text-center animate-fade-in animate-fade-in-delay-4"
+        style={{ borderColor: 'rgba(124,91,240,0.15)' }}>
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--accent-light)' }}>パートナーを募集しませんか？</p>
+        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>案件を投稿して、最適な職人・業者を見つけましょう</p>
+      </Link>
     </div>
   );
 }

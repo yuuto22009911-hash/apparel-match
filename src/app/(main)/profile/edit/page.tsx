@@ -133,7 +133,7 @@ export default function ProfileEditPage() {
 
       let avatar_url = profile?.avatar_url || null;
       if (avatarFile) {
-        const fileExt = avatarFile.name.split('.').pop();
+        const fileExt = avatarFile.name.split('.').pop()?.toLowerCase() || 'jpg';
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, avatarFile, { upsert: true });
         if (uploadError) { setMessage({ type: 'error', text: 'アバターアップロードエラー: ' + uploadError.message }); setSaving(false); return; }

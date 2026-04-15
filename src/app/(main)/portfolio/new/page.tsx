@@ -90,7 +90,8 @@ export default function NewPortfolioPage() {
       const imageUrls: string[] = [];
       for (const image of formData.images) {
         const timestamp = Date.now();
-        const filename = `${user.id}/${timestamp}-${Math.random().toString(36).substr(2, 9)}-${image.name}`;
+        const ext = image.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const filename = `${user.id}/${timestamp}-${Math.random().toString(36).substr(2, 9)}.${ext}`;
         const { error: uploadError } = await supabase.storage.from('portfolios').upload(filename, image, { cacheControl: '3600', upsert: false });
         if (uploadError) throw new Error(`画像アップロードに失敗: ${uploadError.message}`);
         const { data: { publicUrl } } = supabase.storage.from('portfolios').getPublicUrl(filename);
