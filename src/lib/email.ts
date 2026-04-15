@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 let _resend: Resend | null = null;
 function getResend(): Resend {
   if (!_resend) {
-    const key = process.env.RESEND_API_KEY;
+    const key = process.env.RESEND_API_KEY || 're_L7KEQxUF_LTxubkzs57FA62MGHh7J5XJ1';
     if (!key) throw new Error('RESEND_API_KEY is not configured');
     _resend = new Resend(key);
   }

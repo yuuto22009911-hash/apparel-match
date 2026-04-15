@@ -186,6 +186,7 @@ export async function POST(
           if (recipient?.email && recipient.email_notifications !== false) {
             emailDebug.attempted = true;
             emailDebug.hasApiKey = !!process.env.RESEND_API_KEY;
+            emailDebug.usingFallback = !process.env.RESEND_API_KEY;
             await sendMessageNotification({
               toEmail: recipient.email,
               toName: recipient.display_name || 'ユーザー',
