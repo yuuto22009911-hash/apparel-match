@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { MessageSquare, Plus, Users, Search, X } from 'lucide-react';
+import { MessageSquare, Plus, Users, Search, X, UserPlus, MessagesSquare } from 'lucide-react';
 import type { ChatRoomWithProfile, Profile } from '@/lib/types';
 
 function formatDate(dateString: string | null) {
@@ -13,22 +13,19 @@ function formatDate(dateString: string | null) {
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return '昨日';
-  } else {
-    return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
-  }
+  if (date.toDateString() === today.toDateString()) return date.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+  if (date.toDateString() === yesterday.toDateString()) return '昨日';
+  return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
 }
+
+type ModalMode = 'none' | 'new_chat' | 'new_group';
 
 export default function ChatPage() {
   const router = useRouter();
   const supabase = createClient();
   const [rooms, setRooms] = useState<ChatRoomWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [modalMode, setModalMode] = useState<ModalMode>('none');
   const [groupName, setGroupName] = useState('');
   const [searchUser, setSearchUser] = useState('');
   const [foundUsers, setFoundUsers] = useState<Profile[]>([]);
@@ -42,7 +39,6 @@ export default function ChatPage() {
       if (!user) { router.push('/login'); return; }
       setCurrentUserId(user.id);
 
-      // 1:1 rooms (user1_id/user2_id)
       const { data: directRooms } = await supabase
         .from('chat_rooms')
         .select('*')
@@ -50,7 +46,6 @@ export default function ChatPage() {
         .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
         .order('last_message_at', { ascending: false, nullsFirst: false });
 
-      // group rooms (via chat_room_members)
       const { data: memberRows } = await supabase
         .from('chat_room_members')
         .select('room_id')
@@ -68,7 +63,6 @@ export default function ChatPage() {
         groupRooms = (gRooms || []) as ChatRoomWithProfile[];
       }
 
-      // Resolve other user profile for direct rooms
       const directWithProfiles = await Promise.all(
         (directRooms || []).map(async (room) => {
           const otherUserId = room.user1_id === user.id ? room.user2_id : room.user1_id;
@@ -81,13 +75,8 @@ export default function ChatPage() {
         })
       );
 
-      // Resolve member count for group rooms
-      const groupWithInfo = groupRooms.map(room => ({
-        ...room,
-        other_user: undefined,
-      })) as ChatRoomWithProfile[];
+      const groupWithInfo = groupRooms.map(room => ({ ...room, other_user: undefined })) as ChatRoomWithProfile[];
 
-      // Combine and sort
       const all = [...directWithProfiles, ...groupWithInfo].sort((a, b) => {
         const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
         const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
@@ -120,6 +109,38 @@ export default function ChatPage() {
     );
   };
 
+  // Start 1:1 chat directly
+  const startDirectChat = async (targetUser: Profile) => {
+    if (!currentUserId) return;
+    setCreating(true);
+    try {
+      // Check existing room
+      const { data: existingRoom } = await supabase
+        .from('chat_rooms')
+        .select('id')
+        .eq('is_group', false)
+        .or(`and(user1_id.eq.${currentUserId},user2_id.eq.${targetUser.id}),and(user1_id.eq.${targetUser.id},user2_id.eq.${currentUserId})`)
+        .maybeSingle();
+
+      if (existingRoom) {
+        router.push(`/chat/${existingRoom.id}`);
+        return;
+      }
+
+      const { data: newRoom, error } = await supabase
+        .from('chat_rooms')
+        .insert({ user1_id: currentUserId, user2_id: targetUser.id, is_group: false })
+        .select()
+        .single();
+      if (error) throw error;
+      router.push(`/chat/${newRoom.id}`);
+    } catch (e) {
+      console.error('Error starting chat:', e);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const createGroupRoom = async () => {
     if (!currentUserId || selectedUsers.length < 2 || !groupName.trim()) return;
     setCreating(true);
@@ -138,15 +159,21 @@ export default function ChatPage() {
       }));
       await supabase.from('chat_room_members').insert(members);
 
-      setShowGroupModal(false);
-      setGroupName('');
-      setSelectedUsers([]);
+      closeModal();
       router.push(`/chat/${room.id}`);
     } catch (e) {
       console.error('Error creating group:', e);
     } finally {
       setCreating(false);
     }
+  };
+
+  const closeModal = () => {
+    setModalMode('none');
+    setSelectedUsers([]);
+    setGroupName('');
+    setSearchUser('');
+    setFoundUsers([]);
   };
 
   if (loading) {
@@ -162,35 +189,49 @@ export default function ChatPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>チャット</h1>
-        <button
-          onClick={() => setShowGroupModal(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-          style={{ background: 'var(--accent)', color: 'white' }}
-        >
-          <Plus className="w-4 h-4" />
-          グループ作成
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setModalMode('new_chat')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--accent)', color: 'white' }}
+          >
+            <MessageSquare className="w-4 h-4" />
+            新しいチャット
+          </button>
+          <button
+            onClick={() => setModalMode('new_group')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+          >
+            <Users className="w-4 h-4" />
+            グループ
+          </button>
+        </div>
       </div>
 
       {/* Room List */}
       {rooms.length === 0 ? (
         <div className="rounded-xl p-12 text-center" style={{ background: 'var(--surface)' }}>
-          <MessageSquare className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--text-muted)' }} />
+          <MessagesSquare className="w-14 h-14 mx-auto mb-4" style={{ color: 'var(--surface-3)' }} />
           <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>まだチャットはありません</p>
-          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>ユーザーを検索してチャットを始めましょう</p>
-          <Link href="/search" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--accent)', color: 'white' }}>
-            <Search className="w-4 h-4" />
-            ユーザーを検索
-          </Link>
+          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>「新しいチャット」からユーザーを検索して会話を始めましょう</p>
+          <button
+            onClick={() => setModalMode('new_chat')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
+            style={{ background: 'var(--accent)', color: 'white' }}
+          >
+            <MessageSquare className="w-4 h-4" />
+            新しいチャットを始める
+          </button>
         </div>
       ) : (
-        <div className="rounded-xl overflow-hidden divide-y" style={{ background: 'var(--surface)' }}>
-          {rooms.map((room) => (
+        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)' }}>
+          {rooms.map((room, i) => (
             <Link
               key={room.id}
               href={`/chat/${room.id}`}
-              className="flex items-center gap-3 px-4 py-3 transition-colors"
-              style={{ borderColor: 'var(--border)' }}
+              className="flex items-center gap-3 px-4 py-3.5 transition-colors"
+              style={{ borderBottom: i < rooms.length - 1 ? '1px solid var(--border)' : 'none' }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
             >
@@ -224,46 +265,94 @@ export default function ChatPage() {
                     {room.last_message.length > 50 ? room.last_message.substring(0, 50) + '...' : room.last_message}
                   </p>
                 ) : (
-                  <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>メッセージなし</p>
+                  <p className="text-xs" style={{ color: 'var(--text-muted)', opacity: 0.5 }}>メッセージを送ってみましょう</p>
                 )}
               </div>
+
+              {/* Chevron */}
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--text-muted)', opacity: 0.3 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </Link>
           ))}
         </div>
       )}
 
-      {/* Group Create Modal */}
-      {showGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)' }}>
-          <div className="w-full max-w-md rounded-xl p-6" style={{ background: 'var(--surface)' }}>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>グループを作成</h2>
+      {/* Modal: New Chat / New Group */}
+      {modalMode !== 'none' && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}>
+          <div
+            className="w-full sm:max-w-md rounded-t-2xl sm:rounded-xl p-5 max-h-[85vh] overflow-y-auto"
+            style={{ background: 'var(--surface)' }}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {modalMode === 'new_chat' ? '新しいチャット' : 'グループを作成'}
+              </h2>
+              <button onClick={closeModal} className="p-1 rounded-md" style={{ color: 'var(--text-muted)' }}>
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <input
-              type="text"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              placeholder="グループ名"
-              className="w-full px-3 py-2 rounded-lg text-sm mb-3 border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-            />
+            {/* Mode tabs */}
+            <div className="flex gap-1 mb-4 p-0.5 rounded-lg" style={{ background: 'var(--surface-2)' }}>
+              <button
+                onClick={() => { setModalMode('new_chat'); setSelectedUsers([]); setGroupName(''); }}
+                className="flex-1 py-2 rounded-md text-xs font-medium transition-all"
+                style={{
+                  background: modalMode === 'new_chat' ? 'var(--accent)' : 'transparent',
+                  color: modalMode === 'new_chat' ? 'white' : 'var(--text-muted)',
+                }}
+              >
+                1:1 チャット
+              </button>
+              <button
+                onClick={() => { setModalMode('new_group'); setSearchUser(''); setFoundUsers([]); }}
+                className="flex-1 py-2 rounded-md text-xs font-medium transition-all"
+                style={{
+                  background: modalMode === 'new_group' ? 'var(--accent)' : 'transparent',
+                  color: modalMode === 'new_group' ? 'white' : 'var(--text-muted)',
+                }}
+              >
+                グループ
+              </button>
+            </div>
 
-            <input
-              type="text"
-              value={searchUser}
-              onChange={(e) => handleSearchUser(e.target.value)}
-              placeholder="メンバーを検索..."
-              className="w-full px-3 py-2 rounded-lg text-sm mb-2 border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-            />
+            {/* Group Name (only for group) */}
+            {modalMode === 'new_group' && (
+              <input
+                type="text"
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                placeholder="グループ名を入力"
+                className="w-full px-3.5 py-2.5 rounded-lg text-sm mb-3 border-0 focus:outline-none focus:ring-2"
+                style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
+              />
+            )}
 
-            {/* Selected Users */}
-            {selectedUsers.length > 0 && (
+            {/* User Search */}
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                value={searchUser}
+                onChange={(e) => handleSearchUser(e.target.value)}
+                placeholder="ユーザー名で検索..."
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
+                style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
+                autoFocus
+              />
+            </div>
+
+            {/* Selected Users (group only) */}
+            {modalMode === 'new_group' && selectedUsers.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mb-3">
                 {selectedUsers.map(u => (
                   <span
                     key={u.id}
                     onClick={() => toggleSelectUser(u)}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium cursor-pointer"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium cursor-pointer"
                     style={{ background: 'var(--accent)', color: 'white' }}
                   >
                     {u.display_name}
@@ -274,43 +363,82 @@ export default function ChatPage() {
             )}
 
             {/* Search Results */}
-            {foundUsers.length > 0 && (
-              <div className="max-h-40 overflow-y-auto rounded-lg mb-3" style={{ background: 'var(--surface-2)' }}>
-                {foundUsers.filter(u => !selectedUsers.find(s => s.id === u.id)).map(user => (
-                  <button
-                    key={user.id}
-                    onClick={() => toggleSelectUser(user)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-3)'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
-                      {user.display_name.charAt(0)}
-                    </div>
-                    {user.display_name}
-                  </button>
-                ))}
+            {searchUser.length > 0 && (
+              <div className="rounded-lg overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+                {foundUsers.length === 0 ? (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>ユーザーが見つかりません</p>
+                  </div>
+                ) : (
+                  foundUsers
+                    .filter(u => modalMode === 'new_chat' || !selectedUsers.find(s => s.id === u.id))
+                    .map(user => (
+                    <button
+                      key={user.id}
+                      onClick={() => {
+                        if (modalMode === 'new_chat') {
+                          startDirectChat(user);
+                        } else {
+                          toggleSelectUser(user);
+                        }
+                      }}
+                      disabled={creating}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left transition-colors disabled:opacity-50"
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-3)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      {user.avatar_url ? (
+                        <img src={user.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
+                          {user.display_name.charAt(0)}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user.display_name}</p>
+                        <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{user.user_type}</p>
+                      </div>
+                      {modalMode === 'new_chat' ? (
+                        <span className="text-xs font-medium px-3 py-1 rounded-full" style={{ background: 'var(--accent)', color: 'white' }}>
+                          チャット
+                        </span>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--accent)' }}>
+                          <UserPlus className="w-4 h-4" />
+                        </span>
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
             )}
 
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => { setShowGroupModal(false); setSelectedUsers([]); setGroupName(''); setSearchUser(''); setFoundUsers([]); }}
-                className="flex-1 py-2 rounded-lg text-sm font-medium"
-                style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={createGroupRoom}
-                disabled={selectedUsers.length < 2 || !groupName.trim() || creating}
-                className="flex-1 py-2 rounded-lg text-sm font-medium disabled:opacity-40"
-                style={{ background: 'var(--accent)', color: 'white' }}
-              >
-                {creating ? '作成中...' : '作成'}
-              </button>
-            </div>
+            {/* Empty state when no search */}
+            {searchUser.length === 0 && (
+              <div className="py-8 text-center">
+                <Search className="w-8 h-8 mx-auto mb-2" style={{ color: 'var(--surface-3)' }} />
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                  {modalMode === 'new_chat' ? 'ユーザーを検索してチャットを始めましょう' : 'メンバーを検索して追加しましょう'}
+                </p>
+              </div>
+            )}
+
+            {/* Group Create Button */}
+            {modalMode === 'new_group' && (
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <button
+                  onClick={createGroupRoom}
+                  disabled={selectedUsers.length < 2 || !groupName.trim() || creating}
+                  className="w-full py-2.5 rounded-lg text-sm font-medium disabled:opacity-30"
+                  style={{ background: 'var(--accent)', color: 'white' }}
+                >
+                  {creating ? '作成中...' : `グループを作成（${selectedUsers.length}人選択中）`}
+                </button>
+                <p className="text-center text-[11px] mt-2" style={{ color: 'var(--text-muted)' }}>
+                  2人以上選択してください
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatMessage, ChatRoom, Profile } from '@/lib/types';
-import { ArrowLeft, Send, Users, UserPlus, X } from 'lucide-react';
+import { ArrowLeft, Send, Users, UserPlus, X, Info } from 'lucide-react';
 import Link from 'next/link';
 
 interface GroupMember {
@@ -29,20 +29,25 @@ export default function ChatRoomPage() {
   const [error, setError] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
   const [sending, setSending] = useState(false);
-  const [showMembers, setShowMembers] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [addSearch, setAddSearch] = useState('');
   const [addResults, setAddResults] = useState<Profile[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
   };
 
-  useEffect(() => { scrollToBottom(); }, [messages]);
+  // Auto scroll on new messages
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
+  // Initialize
   useEffect(() => {
     const initializeChat = async () => {
       try {
@@ -52,109 +57,73 @@ export default function ChatRoomPage() {
         setCurrentUserId(user.id);
 
         const { data: roomData, error: roomError } = await supabase
-          .from('chat_rooms')
-          .select('*')
-          .eq('id', roomId)
-          .single();
+          .from('chat_rooms').select('*').eq('id', roomId).single();
 
         if (roomError || !roomData) { setError('チャットルームが見つかりません'); return; }
-
         const roomTyped = roomData as ChatRoom;
         setRoom(roomTyped);
 
         if (roomTyped.is_group) {
-          // Group: fetch members
           const { data: memberRows } = await supabase
-            .from('chat_room_members')
-            .select('user_id, role')
-            .eq('room_id', roomId);
+            .from('chat_room_members').select('user_id, role').eq('room_id', roomId);
 
           if (memberRows) {
             const profileIds = memberRows.map(m => m.user_id);
             const { data: profiles } = await supabase
-              .from('profiles')
-              .select('id, display_name, avatar_url, user_type')
-              .in('id', profileIds);
+              .from('profiles').select('id, display_name, avatar_url, user_type').in('id', profileIds);
 
             const profileMap: Record<string, Profile> = {};
             (profiles || []).forEach(p => { profileMap[p.id] = p as Profile; });
             setSenderProfiles(profileMap);
+            setMembers(memberRows.map(m => ({ ...m, profile: profileMap[m.user_id] })));
 
-            const membersWithProfile = memberRows.map(m => ({
-              ...m,
-              profile: profileMap[m.user_id],
-            }));
-            setMembers(membersWithProfile);
-
-            // Check membership
             if (!memberRows.find(m => m.user_id === user.id)) {
               setError('このグループに参加していません');
               return;
             }
           }
         } else {
-          // 1:1 chat
           if (roomData.user1_id !== user.id && roomData.user2_id !== user.id) {
             setError('このチャットにアクセスする権限がありません');
             return;
           }
           const otherUserId = roomData.user1_id === user.id ? roomData.user2_id : roomData.user1_id;
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', otherUserId)
-            .single();
+          const { data: profileData } = await supabase.from('profiles').select('*').eq('id', otherUserId).single();
           if (profileData) {
             setOtherUser(profileData as Profile);
             setSenderProfiles(prev => ({ ...prev, [otherUserId]: profileData as Profile }));
           }
-          // Add self profile
-          const { data: selfProfile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          if (selfProfile) {
-            setSenderProfiles(prev => ({ ...prev, [user.id]: selfProfile as Profile }));
-          }
+          const { data: selfProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+          if (selfProfile) setSenderProfiles(prev => ({ ...prev, [user.id]: selfProfile as Profile }));
         }
 
-        // Fetch messages
         const { data: messagesData } = await supabase
-          .from('chat_messages')
-          .select('*')
-          .eq('room_id', roomId)
-          .order('created_at', { ascending: true });
+          .from('chat_messages').select('*').eq('room_id', roomId).order('created_at', { ascending: true });
         setMessages((messagesData || []) as ChatMessage[]);
 
-        // Mark as read
         if (!roomTyped.is_group) {
           const otherUserId = roomData.user1_id === user.id ? roomData.user2_id : roomData.user1_id;
-          await supabase
-            .from('chat_messages')
-            .update({ is_read: true })
-            .eq('room_id', roomId)
-            .eq('sender_id', otherUserId)
-            .eq('is_read', false);
+          await supabase.from('chat_messages').update({ is_read: true })
+            .eq('room_id', roomId).eq('sender_id', otherUserId).eq('is_read', false);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'エラーが発生しました');
       } finally {
         setLoading(false);
+        // Scroll to bottom instantly on initial load
+        setTimeout(() => scrollToBottom('instant'), 100);
       }
     };
     initializeChat();
   }, [roomId]);
 
-  // Realtime subscription
+  // Realtime
   useEffect(() => {
     if (!currentUserId || !roomId) return;
     const subscription = supabase
       .channel(`chat_messages:${roomId}`)
       .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'chat_messages',
+        event: '*', schema: 'public', table: 'chat_messages',
         filter: `room_id=eq.${roomId}`,
       }, (payload) => {
         if (payload.eventType === 'INSERT') {
@@ -172,21 +141,40 @@ export default function ChatRoomPage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || !currentUserId) return;
+    if (!inputValue.trim() || !currentUserId || sending) return;
+    const content = inputValue.trim();
+    setInputValue('');
+
+    // Optimistic update
+    const optimisticMsg: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      room_id: roomId,
+      sender_id: currentUserId,
+      content,
+      is_read: false,
+      created_at: new Date().toISOString(),
+    };
+    setMessages(prev => [...prev, optimisticMsg]);
+
     try {
       setSending(true);
       const { error: sendError } = await supabase
         .from('chat_messages')
-        .insert({ room_id: roomId, sender_id: currentUserId, content: inputValue.trim(), is_read: false });
+        .insert({ room_id: roomId, sender_id: currentUserId, content, is_read: false });
       if (sendError) throw sendError;
-      await supabase
-        .from('chat_rooms')
-        .update({ last_message: inputValue.trim(), last_message_at: new Date().toISOString() })
+
+      await supabase.from('chat_rooms')
+        .update({ last_message: content, last_message_at: new Date().toISOString() })
         .eq('id', roomId);
-      setInputValue('');
+
+      // Remove optimistic message (realtime will add the real one)
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
+
       inputRef.current?.focus();
     } catch (err) {
       console.error('Error sending message:', err);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== optimisticMsg.id));
     } finally {
       setSending(false);
     }
@@ -212,7 +200,6 @@ export default function ChatRoomPage() {
     setAddResults(prev => prev.filter(u => u.id !== user.id));
   };
 
-  // Date separator logic
   const getDateLabel = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
@@ -225,9 +212,7 @@ export default function ChatRoomPage() {
 
   const shouldShowDate = (msg: ChatMessage, index: number) => {
     if (index === 0) return true;
-    const prevDate = new Date(messages[index - 1].created_at).toDateString();
-    const currDate = new Date(msg.created_at).toDateString();
-    return prevDate !== currDate;
+    return new Date(messages[index - 1].created_at).toDateString() !== new Date(msg.created_at).toDateString();
   };
 
   if (loading) {
@@ -243,10 +228,13 @@ export default function ChatRoomPage() {
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center gap-3 mb-6">
           <Link href="/chat" style={{ color: 'var(--accent)' }}><ArrowLeft className="w-5 h-5" /></Link>
-          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>エラー</span>
+          <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>戻る</span>
         </div>
-        <div className="rounded-xl p-6 text-center" style={{ background: 'var(--surface)' }}>
-          <p className="text-sm" style={{ color: 'var(--danger)' }}>{error}</p>
+        <div className="rounded-xl p-8 text-center" style={{ background: 'var(--surface)' }}>
+          <p className="text-sm mb-4" style={{ color: 'var(--danger)' }}>{error}</p>
+          <Link href="/chat" className="inline-flex px-4 py-2 rounded-lg text-sm font-medium" style={{ background: 'var(--accent)', color: 'white' }}>
+            チャット一覧に戻る
+          </Link>
         </div>
       </div>
     );
@@ -257,96 +245,100 @@ export default function ChatRoomPage() {
 
   return (
     <div className="max-w-2xl mx-auto flex flex-col" style={{ height: 'calc(100vh - 80px)' }}>
-      {/* Chat Header */}
-      <div className="flex items-center gap-3 pb-3 mb-0 flex-shrink-0 border-b" style={{ borderColor: 'var(--border)' }}>
-        <Link href="/chat" style={{ color: 'var(--text-muted)' }}>
+      {/* Header */}
+      <div className="flex items-center gap-3 pb-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+        <Link href="/chat" className="p-1.5 rounded-lg -ml-1.5 active:scale-95 transition-transform" style={{ color: 'var(--text-muted)' }}>
           <ArrowLeft className="w-5 h-5" />
         </Link>
 
-        {isGroup ? (
-          <div className="w-9 h-9 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-3)' }}>
-            <Users className="w-4 h-4" style={{ color: 'var(--accent-light)' }} />
-          </div>
-        ) : otherUser?.avatar_url ? (
-          <img src={otherUser.avatar_url} alt="" className="w-9 h-9 rounded-full object-cover" />
-        ) : (
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
-            {otherUser?.display_name?.charAt(0) || '?'}
-          </div>
-        )}
-
-        <div className="flex-1 min-w-0">
-          <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{roomTitle}</h2>
-          {isGroup && (
-            <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{members.length}人のメンバー</p>
+        <Link href={isGroup ? '#' : `/profile/${otherUser?.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+          {isGroup ? (
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-3)' }}>
+              <Users className="w-4 h-4" style={{ color: 'var(--accent-light)' }} />
+            </div>
+          ) : otherUser?.avatar_url ? (
+            <img src={otherUser.avatar_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
+              {otherUser?.display_name?.charAt(0) || '?'}
+            </div>
           )}
-        </div>
+          <div className="min-w-0">
+            <h2 className="text-sm font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{roomTitle}</h2>
+            {isGroup && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{members.length}人</p>}
+            {!isGroup && otherUser?.user_type && <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{otherUser.user_type}</p>}
+          </div>
+        </Link>
 
         {isGroup && (
-          <button
-            onClick={() => setShowMembers(!showMembers)}
-            className="p-1.5 rounded-md"
-            style={{ color: 'var(--text-muted)' }}
-          >
-            <Users className="w-4 h-4" />
+          <button onClick={() => setShowInfo(!showInfo)} className="p-2 rounded-lg active:scale-95 transition-transform" style={{ color: 'var(--text-muted)' }}>
+            <Info className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      {/* Members Panel (Group) */}
-      {showMembers && isGroup && (
-        <div className="py-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>メンバー</span>
-            <button onClick={() => setShowAddMember(true)} className="text-xs flex items-center gap-1" style={{ color: 'var(--accent)' }}>
-              <UserPlus className="w-3 h-3" /> 追加
+      {/* Group Info Panel */}
+      {showInfo && isGroup && (
+        <div className="py-4 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>メンバー ({members.length})</span>
+            <button onClick={() => setShowAddMember(!showAddMember)} className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--accent)' }}>
+              <UserPlus className="w-3.5 h-3.5" /> メンバー追加
             </button>
           </div>
-          <div className="flex flex-wrap gap-2">
+
+          <div className="space-y-1">
             {members.map(m => (
-              <span key={m.user_id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)' }}>
-                {m.profile?.display_name || '...'}
-                {m.role === 'owner' && <span style={{ color: 'var(--warning)' }}>★</span>}
-              </span>
+              <div key={m.user_id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg">
+                {m.profile?.avatar_url ? (
+                  <img src={m.profile.avatar_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
+                    {m.profile?.display_name?.charAt(0) || '?'}
+                  </div>
+                )}
+                <span className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>{m.profile?.display_name || '...'}</span>
+                {m.role === 'owner' && <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(245,158,11,0.15)', color: 'var(--warning)' }}>オーナー</span>}
+              </div>
             ))}
           </div>
 
-          {/* Add member search */}
           {showAddMember && (
-            <div className="mt-2">
+            <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border)' }}>
               <input
-                type="text"
-                value={addSearch}
-                onChange={(e) => handleAddMemberSearch(e.target.value)}
+                type="text" value={addSearch} onChange={(e) => handleAddMemberSearch(e.target.value)}
                 placeholder="ユーザー名で検索..."
-                className="w-full px-3 py-1.5 rounded-lg text-xs border-0 focus:outline-none focus:ring-2"
+                className="w-full px-3 py-2 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
                 style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
               />
               {addResults.map(u => (
-                <button
-                  key={u.id}
-                  onClick={() => addMemberToGroup(u)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left mt-1 rounded-md"
-                  style={{ color: 'var(--text-secondary)' }}
+                <button key={u.id} onClick={() => addMemberToGroup(u)}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-left mt-1 rounded-lg transition-colors"
+                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
-                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
                     {u.display_name.charAt(0)}
-                  </span>
-                  {u.display_name}
-                  <span className="ml-auto text-[10px]" style={{ color: 'var(--accent)' }}>+追加</span>
+                  </div>
+                  <span className="text-sm flex-1" style={{ color: 'var(--text-secondary)' }}>{u.display_name}</span>
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: 'var(--accent)', color: 'white' }}>追加</span>
                 </button>
               ))}
-              <button onClick={() => { setShowAddMember(false); setAddSearch(''); setAddResults([]); }} className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>閉じる</button>
+              <button onClick={() => { setShowAddMember(false); setAddSearch(''); setAddResults([]); }}
+                className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>閉じる</button>
             </div>
           )}
         </div>
       )}
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-1 px-1">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto py-4 px-1">
         {messages.length === 0 ? (
-          <div className="flex justify-center items-center h-full">
-            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>メッセージがまだありません</p>
+          <div className="flex flex-col justify-center items-center h-full gap-2">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-2)' }}>
+              <Send className="w-6 h-6" style={{ color: 'var(--surface-3)' }} />
+            </div>
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>メッセージを送って会話を始めましょう</p>
           </div>
         ) : (
           messages.map((message, index) => {
@@ -355,52 +347,50 @@ export default function ChatRoomPage() {
             const senderProfile = senderProfiles[message.sender_id];
             const showSenderName = isGroup && !isMe;
             const time = new Date(message.created_at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-
-            // Show "read" indicator for own messages (1:1 only)
             const isRead = !isGroup && isMe && message.is_read;
+            const isOptimistic = message.id.startsWith('temp-');
 
             return (
               <div key={message.id}>
                 {showDate && (
-                  <div className="flex justify-center my-3">
-                    <span className="px-3 py-0.5 rounded-full text-[10px] font-medium" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+                  <div className="flex justify-center my-4">
+                    <span className="px-3 py-1 rounded-full text-[10px] font-medium" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
                       {getDateLabel(message.created_at)}
                     </span>
                   </div>
                 )}
-                <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-0.5`}>
-                  {/* Other user avatar (group) */}
+                <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} mb-1.5`}>
+                  {/* Group avatar */}
                   {!isMe && isGroup && (
-                    <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-semibold mr-1.5 mt-auto" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-semibold mr-2 mt-auto mb-0.5" style={{ background: 'var(--surface-3)', color: 'var(--accent-light)' }}>
                       {senderProfile?.display_name?.charAt(0) || '?'}
                     </div>
                   )}
 
-                  <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[75%]`}>
+                  <div className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} max-w-[78%]`}>
                     {showSenderName && (
-                      <span className="text-[10px] mb-0.5 ml-1" style={{ color: 'var(--text-muted)' }}>
+                      <span className="text-[10px] mb-0.5 px-1" style={{ color: 'var(--text-muted)' }}>
                         {senderProfile?.display_name || '不明'}
                       </span>
                     )}
-                    <div className={`flex items-end gap-1 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`flex items-end gap-1.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                       <div
-                        className={`px-3 py-2 text-sm break-words whitespace-pre-wrap ${
-                          isMe
-                            ? 'rounded-2xl rounded-br-sm'
-                            : 'rounded-2xl rounded-bl-sm'
+                        className={`px-3.5 py-2 text-sm leading-relaxed break-words whitespace-pre-wrap ${
+                          isMe ? 'rounded-2xl rounded-br-md' : 'rounded-2xl rounded-bl-md'
                         }`}
                         style={{
                           background: isMe ? 'var(--accent)' : 'var(--surface-2)',
                           color: isMe ? 'white' : 'var(--text-primary)',
+                          opacity: isOptimistic ? 0.6 : 1,
                         }}
                       >
                         {message.content}
                       </div>
-                      <div className="flex flex-col items-end gap-0">
+                      <div className={`flex flex-col gap-0 flex-shrink-0 ${isMe ? 'items-end' : 'items-start'}`}>
                         {isMe && isRead && (
-                          <span className="text-[9px]" style={{ color: 'var(--accent-light)' }}>既読</span>
+                          <span className="text-[9px] leading-none" style={{ color: 'var(--accent-light)' }}>既読</span>
                         )}
-                        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{time}</span>
+                        <span className="text-[10px] leading-none" style={{ color: 'var(--text-muted)' }}>{time}</span>
                       </div>
                     </div>
                   </div>
@@ -412,8 +402,8 @@ export default function ChatRoomPage() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <form onSubmit={handleSendMessage} className="flex-shrink-0 py-3 border-t" style={{ borderColor: 'var(--border)' }}>
+      {/* Input Area */}
+      <form onSubmit={handleSendMessage} className="flex-shrink-0 py-3" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -421,15 +411,16 @@ export default function ChatRoomPage() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder="メッセージを入力..."
-            className="flex-1 px-4 py-2.5 rounded-full text-sm border-0 focus:outline-none focus:ring-2"
+            className="flex-1 px-4 py-3 rounded-full text-sm border-0 focus:outline-none focus:ring-2"
             style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
             disabled={sending}
+            autoComplete="off"
           />
           <button
             type="submit"
             disabled={!inputValue.trim() || sending}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors disabled:opacity-30"
-            style={{ background: 'var(--accent)', color: 'white' }}
+            className="w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 disabled:opacity-20 disabled:scale-100"
+            style={{ background: inputValue.trim() ? 'var(--accent)' : 'var(--surface-3)', color: 'white' }}
           >
             <Send className="w-4 h-4" />
           </button>
