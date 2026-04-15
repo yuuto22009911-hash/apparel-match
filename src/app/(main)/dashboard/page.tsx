@@ -50,9 +50,76 @@ export default async function DashboardPage() {
 
   const typedProfile = profile as Profile;
 
+  const statusBanner = () => {
+    if (typedProfile.status === 'pending') {
+      return (
+        <div className="mb-8 p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-yellow-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold text-yellow-800">承認待ち</h3>
+              <p className="text-yellow-700 mt-1">
+                あなたのプロフィールは現在、管理者による承認を待っています。承認されるまで、一部の機能が制限される場合があります。
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (typedProfile.status === 'rejected') {
+      return (
+        <div className="mb-8 p-6 rounded-lg bg-red-50 border border-red-200">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-red-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold text-red-800">プロフィールが承認されませんでした</h3>
+              <p className="text-red-700 mt-1">
+                プロフィールの内容を修正して再提出してください。ご不明な点がございましたら、管理者にお問い合わせください。
+              </p>
+              <Link href="/profile/edit" className="inline-block mt-3 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg transition-colors">
+                プロフィールを修正する
+              </Link>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    if (typedProfile.status === 'banned') {
+      return (
+        <div className="mb-8 p-6 rounded-lg bg-slate-100 border border-slate-300">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="w-6 h-6 text-slate-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-lg font-semibold text-slate-800">アカウントが停止されています</h3>
+              <p className="text-slate-700 mt-1">
+                お使いのアカウントは利用規約違反により停止されました。詳細は管理者にお問い合わせください。
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
+        {/* Status Banner */}
+        {statusBanner()}
+
         {/* Welcome Section */}
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">

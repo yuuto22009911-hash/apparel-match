@@ -253,6 +253,37 @@ export default function ProfileEditPage() {
             <p className="text-slate-600 mb-6">はじめに、あなたのプロフィールを設定しましょう。</p>
           )}
 
+          {/* Profile Status Display */}
+          {profile?.status && profile.status !== 'approved' && (
+            <div className={`mb-6 p-4 rounded-lg flex items-start ${
+              profile.status === 'pending'
+                ? 'bg-yellow-50 border border-yellow-200'
+                : profile.status === 'rejected'
+                ? 'bg-red-50 border border-red-200'
+                : 'bg-slate-100 border border-slate-300'
+            }`}>
+              <div className="ml-1">
+                <p className={`font-semibold ${
+                  profile.status === 'pending' ? 'text-yellow-800' :
+                  profile.status === 'rejected' ? 'text-red-800' : 'text-slate-800'
+                }`}>
+                  ステータス：{profile.status === 'pending' ? '承認待ち' :
+                    profile.status === 'rejected' ? '非承認' : '停止中'}
+                </p>
+                <p className={`text-sm mt-1 ${
+                  profile.status === 'pending' ? 'text-yellow-700' :
+                  profile.status === 'rejected' ? 'text-red-700' : 'text-slate-700'
+                }`}>
+                  {profile.status === 'pending'
+                    ? '管理者による承認をお待ちください。'
+                    : profile.status === 'rejected'
+                    ? 'プロフィールの内容を修正して再度保存してください。'
+                    : 'アカウントが停止されています。'}
+                </p>
+              </div>
+            </div>
+          )}
+
           {message && (
             <div
               className={`mb-6 p-4 rounded-lg ${

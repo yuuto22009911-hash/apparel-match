@@ -24,6 +24,7 @@ export default function RegisterPage() {
   const [userType, setUserType] = useState<UserType>('designer');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isRegistered, setIsRegistered] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,7 +51,7 @@ export default function RegisterPage() {
         throw signUpError;
       }
 
-      router.push('/profile/edit');
+      setIsRegistered(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '登録に失敗しました';
       setError(errorMessage);
@@ -58,6 +59,37 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+
+  if (isRegistered) {
+    return (
+      <div className="w-full max-w-sm">
+        <div className="bg-white rounded-lg shadow-lg p-8 border border-zinc-200">
+          <div className="text-center">
+            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">
+              確認メールを送信しました
+            </h1>
+            <p className="text-slate-600 mb-4">
+              <span className="font-semibold text-slate-800">{email}</span> 宛てに確認メールを送信しました。
+            </p>
+            <p className="text-sm text-slate-500 mb-6">
+              メール内のリンクをクリックして、アカウントを有効化してください。メールが届かない場合は、迷惑メールフォルダもご確認ください。
+            </p>
+            <Link
+              href="/login"
+              className="inline-block w-full py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition text-center"
+            >
+              ログインページへ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm">
