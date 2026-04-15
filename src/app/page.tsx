@@ -17,12 +17,9 @@ export default async function LandingPage() {
       {/* Nav */}
       <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5 max-w-7xl mx-auto">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center glow-accent-sm"
-            style={{ background: 'var(--accent)' }}>
-            <span className="text-white text-sm font-bold tracking-tight">AM</span>
-          </div>
-          <span className="text-base font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            Apparel Match
+          <img src="/vestie-logo.svg" alt="VESTIE" className="w-8 h-8" style={{ filter: 'var(--logo-filter, invert(1))' }} />
+          <span className="text-base font-semibold tracking-wider" style={{ color: 'var(--text-primary)', letterSpacing: '0.15em' }}>
+            VESTIE
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -128,7 +125,7 @@ export default async function LandingPage() {
         {/* Footer */}
         <footer className="mt-20 pt-8 text-center" style={{ borderTop: '1px solid var(--border)' }}>
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
-            &copy; 2026 Apparel Match. All rights reserved.
+            &copy; 2026 VESTIE. All rights reserved.
           </p>
         </footer>
       </main>

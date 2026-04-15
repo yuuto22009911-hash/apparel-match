@@ -158,7 +158,7 @@ export default function JobDetailPage() {
         <div className="flex items-start justify-between gap-4 mb-4">
           <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{job.title}</h1>
           <ShareButton
-            title={`${job.title} | MONOFLORAS`}
+            title={`${job.title} | VESTIE`}
             text={`${job.title} — ${JOB_CATEGORIES[job.category as keyof typeof JOB_CATEGORIES] || job.category}`}
             compact
           />

@@ -91,7 +91,7 @@ export default async function ProfilePage({ params }: PageProps) {
                       問い合わせ
                     </Link>
                     <ShareButton
-                      title={`${typedProfile.display_name} | MONOFLORAS`}
+                      title={`${typedProfile.display_name} | VESTIE`}
                       text={`${typedProfile.display_name}さんのプロフィール — ${userTypeLabel}`}
                       compact
                     />

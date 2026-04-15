@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Hanger V shape -->
+  <path d="M15 30 C10 30 8 28 12 25 L15 22 Q18 19 20 22 L48 72 L50 76 L52 72 L80 22 Q82 19 85 22 L88 25 C92 28 90 30 85 30"
+        stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- V inner highlight -->
+  <path d="M48 72 L50 76 L52 72" stroke="currentColor" stroke-width="3" fill="none" opacity="0.3"/>
+  <!-- Crown/hanger hook -->
+  <path d="M44 18 L50 10 L56 18" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Orange dot -->
+  <circle cx="50" cy="7" r="4" fill="#FF6B2B"/>
+  <!-- Small decorative dot -->
+  <circle cx="50" cy="7" r="3" fill="#FF6B2B"/>
+</svg>

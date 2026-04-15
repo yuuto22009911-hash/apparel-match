@@ -79,12 +79,9 @@ export function Header() {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/dashboard" className="flex-shrink-0 flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-shadow group-hover:glow-accent-sm"
-              style={{ background: 'var(--accent)' }}>
-              <span className="text-white text-xs font-bold tracking-tight">AM</span>
-            </div>
-            <span className="hidden sm:inline text-sm font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Apparel Match
+            <img src="/vestie-logo.svg" alt="VESTIE" className="w-7 h-7" style={{ filter: 'var(--logo-filter, invert(1))' }} />
+            <span className="hidden sm:inline text-sm font-semibold tracking-wider" style={{ color: 'var(--text-primary)', letterSpacing: '0.15em' }}>
+              VESTIE
             </span>
           </Link>
 

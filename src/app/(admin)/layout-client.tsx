@@ -54,9 +54,9 @@ export default function AdminLayoutClient({
         <div className="px-6 py-6 border-b border-slate-700">
           <Link href="/admin" className="flex items-center gap-3">
             <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-500 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">AM</span>
+              <span className="text-white text-sm font-bold">V</span>
             </div>
-            <span className="text-lg font-semibold">Apparel Match</span>
+            <span className="text-lg font-semibold">VESTIE</span>
           </Link>
           <p className="text-sm text-slate-400 mt-2">管理パネル</p>
         </div>
@@ -96,9 +96,9 @@ export default function AdminLayoutClient({
           <div className="px-6 py-6 border-b border-slate-700 flex items-center justify-between">
             <Link href="/admin" className="flex items-center gap-3">
               <div className="w-8 h-8 bg-gradient-to-br from-slate-700 to-slate-500 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">AM</span>
+                <span className="text-white text-sm font-bold">V</span>
               </div>
-              <span className="text-lg font-semibold">Apparel Match</span>
+              <span className="text-lg font-semibold">VESTIE</span>
             </Link>
             <button
               onClick={closeSidebar}

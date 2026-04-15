@@ -156,38 +156,25 @@ export async function POST(
       console.error('Error updating chat room:', updateError);
     }
 
-    // Send email notification directly (no fire-and-forget)
-    let emailDebug: Record<string, unknown> = { attempted: false };
+    // Send email notification (non-blocking, errors are logged but don't affect response)
     try {
       const recipientId = room.user1_id === user.id ? room.user2_id : room.user1_id;
-      emailDebug.recipientId = recipientId;
 
       if (recipientId) {
-        // Cooldown check
         const now = Date.now();
         const lastNotified = lastNotifiedMap.get(recipientId) || 0;
-        const withinCooldown = (now - lastNotified) < COOLDOWN_MS;
-        emailDebug.withinCooldown = withinCooldown;
 
-        if (!withinCooldown) {
+        if ((now - lastNotified) >= COOLDOWN_MS) {
           const [senderRes, recipientRes] = await Promise.all([
             supabase.from('profiles').select('display_name').eq('id', user.id).single(),
             supabase.from('profiles').select('display_name, email, email_notifications').eq('id', recipientId).single(),
           ]);
 
-          emailDebug.senderData = senderRes.data;
-          emailDebug.senderError = senderRes.error?.message;
-          emailDebug.recipientData = { email: recipientRes.data?.email ? '***' : null, notifications: recipientRes.data?.email_notifications, name: recipientRes.data?.display_name };
-          emailDebug.recipientError = recipientRes.error?.message;
-
           const senderName = senderRes.data?.display_name || 'ユーザー';
           const recipient = recipientRes.data;
 
           if (recipient?.email && recipient.email_notifications !== false) {
-            emailDebug.attempted = true;
-            emailDebug.hasApiKey = !!process.env.RESEND_API_KEY;
-            emailDebug.usingFallback = !process.env.RESEND_API_KEY;
-            const emailResult = await sendMessageNotification({
+            await sendMessageNotification({
               toEmail: recipient.email,
               toName: recipient.display_name || 'ユーザー',
               senderName,
@@ -196,19 +183,14 @@ export async function POST(
               unreadCount: 1,
             });
             lastNotifiedMap.set(recipientId, now);
-            emailDebug.sent = true;
-            emailDebug.resendResult = emailResult;
-          } else {
-            emailDebug.skipped = !recipient?.email ? 'no_email' : 'notifications_off';
           }
         }
       }
     } catch (emailErr) {
-      emailDebug.error = emailErr instanceof Error ? emailErr.message : String(emailErr);
       console.error('Email notification error:', emailErr);
     }
 
-    return NextResponse.json({ data: message as ChatMessage, _emailDebug: emailDebug }, { status: 201 });
+    return NextResponse.json({ data: message as ChatMessage }, { status: 201 });
   } catch (error) {
     console.error('Error sending message:', error);
     return NextResponse.json(

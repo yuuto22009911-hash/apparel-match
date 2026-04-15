@@ -11,7 +11,7 @@ function getResend(): Resend {
   return _resend;
 }
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'MONOFLORAS <noreply@monofloras.com>';
+const FROM_EMAIL = process.env.EMAIL_FROM || 'VESTIE <noreply@monofloras.com>';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://apparel-match-bojj.vercel.app';
 
 interface SendMessageNotificationParams {
@@ -80,7 +80,7 @@ function buildMessageEmailHtml({
   <div style="max-width:480px;margin:40px auto;padding:0 16px;">
     <!-- Header -->
     <div style="text-align:center;padding:32px 0 24px;">
-      <h1 style="margin:0;font-size:20px;font-weight:700;color:#e0e0e6;letter-spacing:0.5px;">MONOFLORAS</h1>
+      <h1 style="margin:0;font-size:20px;font-weight:700;color:#e0e0e6;letter-spacing:0.5px;">VESTIE</h1>
     </div>
 
     <!-- Card -->
@@ -110,7 +110,7 @@ function buildMessageEmailHtml({
     <!-- Footer -->
     <div style="text-align:center;padding:24px 0;">
       <p style="margin:0;font-size:11px;color:#606070;line-height:1.6;">
-        このメールは<a href="${fullChatUrl}" style="color:#7c5bf0;text-decoration:none;">MONOFLORAS</a>の通知メールです。<br>
+        このメールは<a href="${fullChatUrl}" style="color:#7c5bf0;text-decoration:none;">VESTIE</a>の通知メールです。<br>
         通知が不要な場合はプロフィール設定から変更できます。
       </p>
     </div>
@@ -149,7 +149,7 @@ export async function sendProposalNotification({
 <body style="margin:0;padding:0;background:#0f0f14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
   <div style="max-width:480px;margin:40px auto;padding:0 16px;">
     <div style="text-align:center;padding:32px 0 24px;">
-      <h1 style="margin:0;font-size:20px;font-weight:700;color:#e0e0e6;letter-spacing:0.5px;">MONOFLORAS</h1>
+      <h1 style="margin:0;font-size:20px;font-weight:700;color:#e0e0e6;letter-spacing:0.5px;">VESTIE</h1>
     </div>
     <div style="background:#1a1a24;border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px 24px;">
       <p style="margin:0 0 8px;font-size:14px;color:#a0a0b0;">${toName}さん</p>
@@ -164,7 +164,7 @@ export async function sendProposalNotification({
     </div>
     <div style="text-align:center;padding:24px 0;">
       <p style="margin:0;font-size:11px;color:#606070;line-height:1.6;">
-        このメールは<a href="${fullJobUrl}" style="color:#7c5bf0;text-decoration:none;">MONOFLORAS</a>の通知メールです。
+        このメールは<a href="${fullJobUrl}" style="color:#7c5bf0;text-decoration:none;">VESTIE</a>の通知メールです。
       </p>
     </div>
   </div>

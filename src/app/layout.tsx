@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Apparel Match - アパレルマッチングプラットフォーム",
+  title: "VESTIE - アパレルマッチングプラットフォーム",
   description: "アパレル人材の信用を可視化し、仕事の接点を生む",
 };
 
