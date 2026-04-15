@@ -1,21 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
 type UserType = 'designer' | 'patternmaker' | 'brand' | 'factory';
 
-const USER_TYPES: { value: UserType; label: string }[] = [
-  { value: 'designer', label: 'デザイナー' },
-  { value: 'patternmaker', label: 'パタンナー' },
-  { value: 'brand', label: 'ブランド' },
-  { value: 'factory', label: '工場/OEM' },
+const USER_TYPES: { value: UserType; label: string; desc: string }[] = [
+  { value: 'designer', label: 'デザイナー', desc: '服をデザインする' },
+  { value: 'patternmaker', label: 'パタンナー', desc: 'パターンを作成する' },
+  { value: 'brand', label: 'ブランド', desc: 'ブランドを運営する' },
+  { value: 'factory', label: '工場/OEM', desc: '製造・量産を行う' },
 ];
 
 export default function RegisterPage() {
-  const router = useRouter();
   const supabase = createClient();
 
   const [email, setEmail] = useState('');
@@ -32,9 +30,7 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      if (!displayName.trim()) {
-        throw new Error('表示名を入力してください');
-      }
+      if (!displayName.trim()) throw new Error('表示名を入力してください');
 
       const { error: signUpError } = await supabase.auth.signUp({
         email,
@@ -47,10 +43,7 @@ export default function RegisterPage() {
         },
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
-
+      if (signUpError) throw signUpError;
       setIsRegistered(true);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : '登録に失敗しました';
@@ -62,141 +55,121 @@ export default function RegisterPage() {
 
   if (isRegistered) {
     return (
-      <div className="w-full max-w-sm">
-        <div className="rounded-xl p-8 border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-          <div className="text-center">
-            <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4" style={{ background: 'rgba(34,197,94,0.15)' }}>
-              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--success)' }}>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h1 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-              確認メールを送信しました
-            </h1>
-            <p className="text-sm mb-1" style={{ color: 'var(--text-secondary)' }}>
-              <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{email}</span>
-            </p>
-            <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>
-              メール内のリンクをクリックしてアカウントを有効化してください。メールが届かない場合は迷惑メールフォルダもご確認ください。
-            </p>
-            <Link
-              href="/login"
-              className="inline-block w-full py-2.5 rounded-lg text-sm font-medium text-center"
-              style={{ background: 'var(--accent)', color: 'white' }}
-            >
-              ログインページへ
-            </Link>
+      <div className="w-full max-w-sm mx-auto">
+        <div className="glass-strong p-8 sm:p-10 text-center">
+          <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-5 animate-pulse-glow"
+            style={{ background: 'rgba(52,211,153,0.15)' }}>
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--success)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
           </div>
+          <h1 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+            確認メールを送信しました
+          </h1>
+          <p className="text-sm mb-1 font-medium" style={{ color: 'var(--accent-light)' }}>
+            {email}
+          </p>
+          <p className="text-xs mb-8 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            メール内のリンクをクリックしてアカウントを有効化してください。
+            <br />メールが届かない場合は迷惑メールフォルダもご確認ください。
+          </p>
+          <Link href="/login" className="btn-primary inline-block w-full py-3 text-sm text-center">
+            ログインページへ
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <div className="rounded-xl p-8 border" style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-        <div className="flex justify-center mb-6">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-            <span className="text-white text-lg font-bold">AM</span>
+    <div className="w-full max-w-sm mx-auto">
+      <div className="glass-strong p-8 sm:p-10">
+        <div className="flex justify-center mb-8">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center glow-accent"
+            style={{ background: 'var(--accent)' }}>
+            <span className="text-white text-xl font-bold">AM</span>
           </div>
         </div>
-        <h1 className="text-xl font-semibold text-center mb-1" style={{ color: 'var(--text-primary)' }}>
-          Apparel Match
+        <h1 className="text-2xl font-bold text-center mb-1" style={{ color: 'var(--text-primary)' }}>
+          アカウント作成
         </h1>
-        <p className="text-center text-xs mb-8" style={{ color: 'var(--text-muted)' }}>
-          新しいアカウントを作成
+        <p className="text-center text-sm mb-8" style={{ color: 'var(--text-muted)' }}>
+          無料で始めましょう
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label htmlFor="email" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               メールアドレス
             </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-              required
-              disabled={isLoading}
-            />
+              className="w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ background: 'var(--surface-solid-2)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
+              required disabled={isLoading} />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label htmlFor="password" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               パスワード
             </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-              required
-              disabled={isLoading}
-            />
+            <input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+              placeholder="8文字以上"
+              className="w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ background: 'var(--surface-solid-2)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
+              required disabled={isLoading} />
           </div>
 
           <div>
-            <label htmlFor="displayName" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+            <label htmlFor="displayName" className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>
               表示名
             </label>
-            <input
-              id="displayName"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+            <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
               placeholder="山田太郎"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-              required
-              disabled={isLoading}
-            />
+              className="w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ background: 'var(--surface-solid-2)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
+              required disabled={isLoading} />
           </div>
 
           <div>
-            <label htmlFor="userType" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-              ユーザータイプ
+            <label className="block text-xs font-medium mb-3" style={{ color: 'var(--text-secondary)' }}>
+              あなたの役割
             </label>
-            <select
-              id="userType"
-              value={userType}
-              onChange={(e) => setUserType(e.target.value as UserType)}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm border-0 focus:outline-none focus:ring-2"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-primary)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}
-              disabled={isLoading}
-            >
+            <div className="grid grid-cols-2 gap-2">
               {USER_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
+                <button key={type.value} type="button"
+                  onClick={() => setUserType(type.value)}
+                  className="p-3 rounded-xl text-left transition-all border"
+                  style={{
+                    background: userType === type.value ? 'var(--accent-subtle)' : 'var(--surface-solid-2)',
+                    borderColor: userType === type.value ? 'rgba(124,91,240,0.3)' : 'var(--border)',
+                    color: userType === type.value ? 'var(--accent-light)' : 'var(--text-secondary)',
+                  }}>
+                  <div className="text-sm font-medium">{type.label}</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>{type.desc}</div>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
           {error && (
-            <div className="p-3 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--danger)' }}>
+            <div className="p-3.5 rounded-xl text-sm" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)', border: '1px solid rgba(248,113,113,0.15)' }}>
               {error}
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
-            style={{ background: 'var(--accent)', color: 'white' }}
-          >
-            {isLoading ? 'サインアップ中...' : 'サインアップ'}
+          <button type="submit" disabled={isLoading} className="btn-primary w-full py-3 text-sm disabled:opacity-40">
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                登録中...
+              </span>
+            ) : '無料で登録'}
           </button>
         </form>
 
-        <div className="mt-6 pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
-          <p className="text-center text-xs" style={{ color: 'var(--text-muted)' }}>
+        <div className="mt-8 pt-6" style={{ borderTop: '1px solid var(--border)' }}>
+          <p className="text-center text-sm" style={{ color: 'var(--text-muted)' }}>
             既にアカウントをお持ちですか？{' '}
             <Link href="/login" className="font-medium" style={{ color: 'var(--accent-light)' }}>
               ログイン
