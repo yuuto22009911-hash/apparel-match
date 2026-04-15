@@ -1,9 +1,18 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization — avoid build-time error when RESEND_API_KEY is not set
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) throw new Error('RESEND_API_KEY is not configured');
+    _resend = new Resend(key);
+  }
+  return _resend;
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'MONOFLORAS <noreply@monofloras.com>';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://monofloras.com';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://apparel-match-bojj.vercel.app';
 
 interface SendMessageNotificationParams {
   toEmail: string;
@@ -29,7 +38,7 @@ export async function sendMessageNotification({
     ? `${senderName}さんほかから${unreadCount}件の未読メッセージがあります`
     : `${senderName}さんからメッセージが届きました`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to: toEmail,
     subject,
@@ -127,7 +136,7 @@ export async function sendProposalNotification({
 }: SendProposalNotificationParams) {
   const fullJobUrl = jobUrl.startsWith('http') ? jobUrl : `${SITE_URL}${jobUrl}`;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: FROM_EMAIL,
     to: toEmail,
     subject: `${proposerName}さんが「${jobTitle}」に提案しました`,
