@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { USER_TYPES, PREFECTURES } from '@/lib/constants';
 import type { Profile } from '@/lib/types';
+import { Camera, Globe, ExternalLink, Link2 } from 'lucide-react';
 
 export default function ProfileEditPage() {
   const router = useRouter();
@@ -23,6 +24,9 @@ export default function ProfileEditPage() {
     prefecture: '',
     city: '',
     website_url: '',
+    instagram_url: '',
+    twitter_url: '',
+    sns_url: '',
     skills: '',
     experience_years: '',
     company_name: '',
@@ -53,20 +57,23 @@ export default function ProfileEditPage() {
           return;
         }
 
-        const typedProfile = profileData as Profile;
-        setProfile(typedProfile);
+        const p = profileData as Profile & { instagram_url?: string; twitter_url?: string; sns_url?: string };
+        setProfile(p);
         setFormData({
-          display_name: typedProfile.display_name || '',
-          user_type: typedProfile.user_type,
-          bio: typedProfile.bio || '',
-          prefecture: typedProfile.prefecture || '',
-          city: typedProfile.city || '',
-          website_url: typedProfile.website_url || '',
-          skills: (typedProfile.skills || []).join(', '),
-          experience_years: typedProfile.experience_years ? String(typedProfile.experience_years) : '',
-          company_name: typedProfile.company_name || '',
+          display_name: p.display_name || '',
+          user_type: p.user_type,
+          bio: p.bio || '',
+          prefecture: p.prefecture || '',
+          city: p.city || '',
+          website_url: p.website_url || '',
+          instagram_url: p.instagram_url || '',
+          twitter_url: p.twitter_url || '',
+          sns_url: p.sns_url || '',
+          skills: (p.skills || []).join(', '),
+          experience_years: p.experience_years ? String(p.experience_years) : '',
+          company_name: p.company_name || '',
         });
-        if (typedProfile.avatar_url) setAvatarPreview(typedProfile.avatar_url);
+        if (p.avatar_url) setAvatarPreview(p.avatar_url);
       } catch {
         setMessage({ type: 'error', text: '予期しないエラーが発生しました' });
       } finally {
@@ -83,6 +90,10 @@ export default function ProfileEditPage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: '画像サイズは5MB以下にしてください' });
+        return;
+      }
       setAvatarFile(file);
       const reader = new FileReader();
       reader.onload = (ev) => setAvatarPreview(ev.target?.result as string);
@@ -93,6 +104,7 @@ export default function ProfileEditPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
+    setMessage(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setMessage({ type: 'error', text: 'ユーザー情報が見つかりません' }); return; }
@@ -102,7 +114,7 @@ export default function ProfileEditPage() {
         const fileExt = avatarFile.name.split('.').pop();
         const fileName = `${user.id}-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, avatarFile, { upsert: true });
-        if (uploadError) { setMessage({ type: 'error', text: 'アバターアップロードエラー' }); setSaving(false); return; }
+        if (uploadError) { setMessage({ type: 'error', text: 'アバターアップロードエラー: ' + uploadError.message }); setSaving(false); return; }
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
         avatar_url = publicUrl;
       }
@@ -114,6 +126,9 @@ export default function ProfileEditPage() {
         prefecture: formData.prefecture || null,
         city: formData.city || null,
         website_url: formData.website_url || null,
+        instagram_url: formData.instagram_url || null,
+        twitter_url: formData.twitter_url || null,
+        sns_url: formData.sns_url || null,
         skills: formData.skills ? formData.skills.split(',').map(s => s.trim()).filter(Boolean) : [],
         experience_years: formData.experience_years ? parseInt(formData.experience_years) : null,
         company_name: formData.company_name || null,
@@ -129,7 +144,7 @@ export default function ProfileEditPage() {
         if (updateError) { setMessage({ type: 'error', text: 'プロフィール更新エラー: ' + updateError.message }); setSaving(false); return; }
       }
 
-      setMessage({ type: 'success', text: isNewProfile ? 'プロフィールを作成しました' : 'プロフィールを更新しました' });
+      setMessage({ type: 'success', text: isNewProfile ? 'プロフィールを作成しました！' : '保存しました！' });
       setTimeout(() => router.push('/dashboard'), 1500);
     } catch {
       setMessage({ type: 'error', text: '予期しないエラーが発生しました' });
@@ -138,151 +153,198 @@ export default function ProfileEditPage() {
     }
   };
 
-  const inputStyle = {
-    background: 'var(--surface-2)',
-    color: 'var(--text-primary)',
-    border: '1px solid var(--border)',
-  } as React.CSSProperties;
+  const inputClass = "w-full px-4 py-3 rounded-xl text-sm border focus:outline-none focus:ring-2 focus:border-transparent";
+  const inputStyle = { background: 'var(--surface-solid-2)', color: 'var(--text-primary)', borderColor: 'var(--border)', '--tw-ring-color': 'var(--accent)' } as React.CSSProperties;
+  const labelClass = "block text-xs font-medium mb-2";
+  const labelStyle = { color: 'var(--text-secondary)' };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--surface-3)', borderTopColor: 'var(--accent)' }} />
+      <div className="flex justify-center items-center min-h-[400px]">
+        <div className="w-10 h-10 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--surface-3)', borderTopColor: 'var(--accent)' }} />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <div className="rounded-xl p-6 sm:p-8" style={{ background: 'var(--surface)' }}>
-        <h1 className="text-xl font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <div className="glass p-8 animate-fade-in">
+        <h1 className="text-2xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
           {isNewProfile ? 'プロフィール設定' : 'プロフィール編集'}
         </h1>
         {isNewProfile && (
-          <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>はじめに、あなたのプロフィールを設定しましょう。</p>
+          <p className="text-sm mb-8" style={{ color: 'var(--text-muted)' }}>はじめに、あなたのプロフィールを設定しましょう。</p>
         )}
 
         {/* Status */}
         {profile?.status && profile.status !== 'approved' && (
-          <div className="mb-6 p-3 rounded-lg" style={{
-            background: profile.status === 'pending' ? 'rgba(245,158,11,0.1)' : profile.status === 'rejected' ? 'rgba(239,68,68,0.1)' : 'var(--surface-2)',
-            border: `1px solid ${profile.status === 'pending' ? 'rgba(245,158,11,0.2)' : profile.status === 'rejected' ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
+          <div className="mb-6 glass p-4 flex items-center gap-3" style={{
+            borderColor: profile.status === 'pending' ? 'rgba(251,191,36,0.2)' : profile.status === 'rejected' ? 'rgba(248,113,113,0.2)' : 'var(--border)',
           }}>
-            <p className="text-xs font-medium" style={{ color: profile.status === 'pending' ? 'var(--warning)' : profile.status === 'rejected' ? 'var(--danger)' : 'var(--text-muted)' }}>
-              ステータス：{profile.status === 'pending' ? '承認待ち' : profile.status === 'rejected' ? '非承認 - 内容を修正してください' : '停止中'}
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+              background: profile.status === 'pending' ? 'var(--warning)' : profile.status === 'rejected' ? 'var(--danger)' : 'var(--text-muted)',
+            }} />
+            <p className="text-xs font-medium" style={{
+              color: profile.status === 'pending' ? 'var(--warning)' : profile.status === 'rejected' ? 'var(--danger)' : 'var(--text-muted)',
+            }}>
+              {profile.status === 'pending' ? '承認待ち — 管理者が確認中です' : profile.status === 'rejected' ? '非承認 — 内容を修正して再提出してください' : 'アカウント停止中'}
             </p>
           </div>
         )}
 
         {message && (
-          <div className="mb-6 p-3 rounded-lg text-sm" style={{
-            background: message.type === 'success' ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+          <div className="mb-6 p-4 rounded-xl text-sm" style={{
+            background: message.type === 'success' ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
             color: message.type === 'success' ? 'var(--success)' : 'var(--danger)',
+            border: `1px solid ${message.type === 'success' ? 'rgba(52,211,153,0.15)' : 'rgba(248,113,113,0.15)'}`,
           }}>
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Avatar */}
           <div>
-            <label className="block text-xs font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>アバター</label>
-            <div className="flex items-center gap-4">
-              {avatarPreview && (
-                <div className="w-16 h-16 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+            <label className={labelClass} style={labelStyle}>プロフィール写真</label>
+            <div className="flex items-center gap-5">
+              <label className="cursor-pointer group relative">
+                <div className="avatar-ring">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="w-20 h-20 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ background: 'var(--surface-solid-2)', color: 'var(--text-muted)' }}>
+                      <Camera className="w-6 h-6" />
+                    </div>
+                  )}
                 </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="text-xs"
-                style={{ color: 'var(--text-muted)' }}
-              />
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera className="w-5 h-5 text-white" />
+                </div>
+                <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+              </label>
+              <div>
+                <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>写真を変更</p>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>JPG, PNG, GIF / 5MB以下</p>
+              </div>
             </div>
           </div>
 
-          {/* Display Name */}
-          <div>
-            <label htmlFor="display_name" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>表示名</label>
-            <input type="text" id="display_name" name="display_name" value={formData.display_name} onChange={handleInputChange}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} required />
-          </div>
-
-          {/* User Type */}
-          <div>
-            <label htmlFor="user_type" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>ユーザー種別</label>
-            <select id="user_type" name="user_type" value={formData.user_type} onChange={handleInputChange}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}>
-              {Object.entries(USER_TYPES).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
+          {/* Display Name + User Type */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="display_name" className={labelClass} style={labelStyle}>表示名 *</label>
+              <input type="text" id="display_name" name="display_name" value={formData.display_name} onChange={handleInputChange}
+                className={inputClass} style={inputStyle} required />
+            </div>
+            <div>
+              <label htmlFor="user_type" className={labelClass} style={labelStyle}>カテゴリ</label>
+              <select id="user_type" name="user_type" value={formData.user_type} onChange={handleInputChange}
+                className={inputClass} style={inputStyle}>
+                {Object.entries(USER_TYPES).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Bio */}
           <div>
-            <label htmlFor="bio" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>自己紹介</label>
+            <label htmlFor="bio" className={labelClass} style={labelStyle}>自己紹介</label>
             <textarea id="bio" name="bio" value={formData.bio} onChange={handleInputChange} rows={4}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+              placeholder="あなたの経歴、得意分野、実績などを書きましょう"
+              className={inputClass} style={inputStyle} />
           </div>
 
-          {/* Prefecture + City */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Location */}
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="prefecture" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>都道府県</label>
+              <label htmlFor="prefecture" className={labelClass} style={labelStyle}>都道府県</label>
               <select id="prefecture" name="prefecture" value={formData.prefecture} onChange={handleInputChange}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties}>
+                className={inputClass} style={inputStyle}>
                 <option value="">選択</option>
                 {PREFECTURES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <label htmlFor="city" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>市区町村</label>
+              <label htmlFor="city" className={labelClass} style={labelStyle}>市区町村</label>
               <input type="text" id="city" name="city" value={formData.city} onChange={handleInputChange}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+                className={inputClass} style={inputStyle} />
             </div>
           </div>
 
-          {/* Website */}
-          <div>
-            <label htmlFor="website_url" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>ウェブサイト</label>
-            <input type="url" id="website_url" name="website_url" value={formData.website_url} onChange={handleInputChange}
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+          {/* SNS Links Section */}
+          <div className="pt-2">
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>SNS・Webサイト</h3>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="instagram_url" className={labelClass} style={labelStyle}>
+                  <span className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Instagram</span>
+                </label>
+                <input type="url" id="instagram_url" name="instagram_url" value={formData.instagram_url} onChange={handleInputChange}
+                  placeholder="https://instagram.com/username"
+                  className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="twitter_url" className={labelClass} style={labelStyle}>
+                  <span className="flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> X (Twitter)</span>
+                </label>
+                <input type="url" id="twitter_url" name="twitter_url" value={formData.twitter_url} onChange={handleInputChange}
+                  placeholder="https://x.com/username"
+                  className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="website_url" className={labelClass} style={labelStyle}>
+                  <span className="flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> Webサイト</span>
+                </label>
+                <input type="url" id="website_url" name="website_url" value={formData.website_url} onChange={handleInputChange}
+                  placeholder="https://your-website.com"
+                  className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label htmlFor="sns_url" className={labelClass} style={labelStyle}>
+                  <span className="flex items-center gap-1.5"><ExternalLink className="w-3.5 h-3.5" /> その他リンク</span>
+                </label>
+                <input type="url" id="sns_url" name="sns_url" value={formData.sns_url} onChange={handleInputChange}
+                  placeholder="https://behance.net/username"
+                  className={inputClass} style={inputStyle} />
+              </div>
+            </div>
           </div>
 
           {/* Skills */}
           <div>
-            <label htmlFor="skills" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>スキル（カンマ区切り）</label>
-            <input type="text" id="skills" name="skills" value={formData.skills} onChange={handleInputChange} placeholder="例: パターン制作, 裁断, 生地選定"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+            <label htmlFor="skills" className={labelClass} style={labelStyle}>スキル（カンマ区切り）</label>
+            <input type="text" id="skills" name="skills" value={formData.skills} onChange={handleInputChange}
+              placeholder="例: パターン制作, 裁断, ニット, メンズ"
+              className={inputClass} style={inputStyle} />
+            <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-muted)' }}>検索で見つけてもらいやすくなります</p>
           </div>
 
           {/* Experience + Company */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="experience_years" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>経験年数</label>
+              <label htmlFor="experience_years" className={labelClass} style={labelStyle}>経験年数</label>
               <input type="number" id="experience_years" name="experience_years" value={formData.experience_years} onChange={handleInputChange} min="0"
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+                className={inputClass} style={inputStyle} />
             </div>
             <div>
-              <label htmlFor="company_name" className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>会社名</label>
+              <label htmlFor="company_name" className={labelClass} style={labelStyle}>会社・屋号</label>
               <input type="text" id="company_name" name="company_name" value={formData.company_name} onChange={handleInputChange}
-                className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-2" style={{ ...inputStyle, '--tw-ring-color': 'var(--accent)' } as React.CSSProperties} />
+                className={inputClass} style={inputStyle} />
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3 pt-2">
-            <button type="submit" disabled={saving}
-              className="flex-1 py-2.5 rounded-lg text-sm font-medium disabled:opacity-40"
-              style={{ background: 'var(--accent)', color: 'white' }}>
-              {saving ? '保存中...' : '保存'}
+          <div className="flex gap-3 pt-4">
+            <button type="submit" disabled={saving} className="btn-primary flex-1 py-3 text-sm disabled:opacity-40">
+              {saving ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  保存中...
+                </span>
+              ) : '保存する'}
             </button>
-            <button type="button" onClick={() => router.push('/dashboard')}
-              className="flex-1 py-2.5 rounded-lg text-sm font-medium"
-              style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            <button type="button" onClick={() => router.push('/dashboard')} className="btn-glass flex-1 py-3 text-sm">
               キャンセル
             </button>
           </div>

@@ -11,6 +11,9 @@ export interface Profile {
   prefecture: string | null;
   city: string | null;
   website_url: string | null;
+  instagram_url: string | null;
+  twitter_url: string | null;
+  sns_url: string | null;
   skills: string[];
   experience_years: number | null;
   company_name: string | null;
