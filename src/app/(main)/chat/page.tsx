@@ -158,7 +158,7 @@ export default function ChatPage() {
           is_group: true,
           name: finalName,
           user1_id: currentUserId,
-          user2_id: selectedUsers[0]?.id || null,
+          user2_id: null,
         })
         .select()
         .single();
