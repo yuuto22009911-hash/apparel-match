@@ -141,9 +141,13 @@ export default function ChatPage() {
     }
   };
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   const createGroupRoom = async () => {
-    if (!currentUserId || selectedUsers.length < 1) return;
+    if (!currentUserId) { setErrorMsg('ログインしてください'); return; }
+    if (selectedUsers.length < 1) { setErrorMsg('メンバーを1人以上選択してください'); return; }
     setCreating(true);
+    setErrorMsg(null);
     try {
       // Auto-generate group name if empty
       const finalName = groupName.trim() || selectedUsers.map(u => u.display_name).join(', ');
@@ -158,7 +162,9 @@ export default function ChatPage() {
         })
         .select()
         .single();
-      if (error || !room) throw error;
+
+      if (error) { setErrorMsg('ルーム作成エラー: ' + error.message); setCreating(false); return; }
+      if (!room) { setErrorMsg('ルーム作成失敗: データが返されませんでした'); setCreating(false); return; }
 
       const members = [currentUserId, ...selectedUsers.map(u => u.id)].map((uid, i) => ({
         room_id: room.id,
@@ -166,12 +172,13 @@ export default function ChatPage() {
         role: i === 0 ? 'owner' : 'member',
       }));
       const { error: memberError } = await supabase.from('chat_room_members').insert(members);
-      if (memberError) throw memberError;
+      if (memberError) { setErrorMsg('メンバー追加エラー: ' + memberError.message); setCreating(false); return; }
 
       closeModal();
       router.push(`/chat/${room.id}`);
-    } catch (e) {
-      console.error('Error creating group:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrorMsg('予期しないエラー: ' + msg);
     } finally {
       setCreating(false);
     }
@@ -429,6 +436,13 @@ export default function ChatPage() {
                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   {modalMode === 'new_chat' ? 'ユーザーを検索してチャットを始めましょう' : 'メンバーを検索して追加しましょう'}
                 </p>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {errorMsg && (
+              <div className="mb-3 p-3 rounded-lg text-xs font-medium" style={{ background: 'rgba(248,113,113,0.1)', color: 'var(--danger)', border: '1px solid rgba(248,113,113,0.2)' }}>
+                {errorMsg}
               </div>
             )}
 
