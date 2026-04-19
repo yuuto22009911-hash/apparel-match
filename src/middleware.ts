@@ -1,19 +1,16 @@
-import { type NextRequest } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
 export async function middleware(request: NextRequest) {
+  // ルートパス（LP）はミドルウェアをスキップしてそのまま表示
+  if (request.nextUrl.pathname === '/') {
+    return NextResponse.next();
+  }
   return await updateSession(request);
 }
 
 export const config = {
   matcher: [
-    /*
-     * 以下を除くすべてのパスにマッチ:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico
-     * - public フォルダ
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
