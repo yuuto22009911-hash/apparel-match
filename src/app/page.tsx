@@ -69,14 +69,14 @@ export default async function LandingPage() {
         <div className="lp-blob lp-blob-2" />
       </section>
 
-      {/* Social Proof — Stats */}
+      {/* Value Props — Quick summary */}
       <section className="lp-section lp-stats-section">
         <div className="lp-section-inner">
           <div className="lp-stats-grid">
             {[
-              { value: '500+', label: '登録プロフェッショナル', sub: 'デザイナー・職人・工場が参加' },
-              { value: '1,200+', label: 'マッチング成立', sub: '月間マッチング数' },
-              { value: '98%', label: '満足度', sub: 'ユーザーアンケート結果' },
+              { value: '¥0', label: '完全無料', sub: '基本機能はすべて無料で利用可能' },
+              { value: '30秒', label: 'かんたん登録', sub: 'メールアドレスだけですぐ始められる' },
+              { value: '6職種', label: '幅広い対応', sub: 'デザイナーから工場まで全カバー' },
             ].map((s) => (
               <div key={s.label} className="lp-stat-item">
                 <div className="lp-stat-value">{s.value}</div>
@@ -132,7 +132,7 @@ export default async function LandingPage() {
                 ),
                 title: 'スマート検索',
                 desc: 'カテゴリ・スキル・地域で絞り込み。プロフィールと実績を確認してから直接アプローチ。',
-                highlight: '探す時間を90%削減',
+                highlight: 'カテゴリ・スキル・地域対応',
               },
               {
                 icon: (
@@ -140,7 +140,7 @@ export default async function LandingPage() {
                 ),
                 title: '案件ボード',
                 desc: '依頼を投稿すれば提案が届く。職人は登録するだけで仕事に出会える。',
-                highlight: '平均3日以内にマッチング',
+                highlight: '投稿するだけで提案が届く',
               },
               {
                 icon: (
@@ -218,27 +218,22 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Why VESTIE — instead of fake testimonials */}
       <section className="lp-section lp-testimonials">
         <div className="lp-section-inner">
-          <p className="lp-section-label">Voice</p>
-          <h2 className="lp-section-title">利用者の声</h2>
+          <p className="lp-section-label">Why VESTIE</p>
+          <h2 className="lp-section-title">既存の方法との違い</h2>
           <div className="lp-testimonial-grid">
             {[
-              { name: '田中 美咲', role: 'デザイナー', text: '今まで知り合いの紹介でしか見つからなかった縫製工場が、VESTIEで簡単に見つかりました。品質の高いパートナーと出会えて感謝しています。' },
-              { name: '山田 健一', role: '縫製工場オーナー', text: '登録してすぐに複数のブランドから問い合わせが来ました。工場の稼働率が上がり、安定した受注に繋がっています。' },
-              { name: '佐藤 リカ', role: 'ブランドディレクター', text: 'レビューや評価があるので安心して取引できます。チャットでのやり取りもスムーズで、業務効率が大幅に改善しました。' },
+              { icon: '❌', before: '知り合いの紹介頼み', after: 'スキル・地域・カテゴリで検索して自分で見つける', label: 'パートナー探し' },
+              { icon: '❌', before: '実績や信頼性が不明', after: 'レビュー・評価で取引前に確認できる', label: '信頼性' },
+              { icon: '❌', before: 'メールや電話で時間がかかる', after: 'リアルタイムチャットですぐにやり取り', label: 'コミュニケーション' },
             ].map((t, i) => (
               <div key={i} className="lp-testimonial-card">
-                <div className="lp-testimonial-stars">★★★★★</div>
-                <p className="lp-testimonial-text">「{t.text}」</p>
-                <div className="lp-testimonial-author">
-                  <div className="lp-testimonial-avatar">{t.name[0]}</div>
-                  <div>
-                    <div className="lp-testimonial-name">{t.name}</div>
-                    <div className="lp-testimonial-role">{t.role}</div>
-                  </div>
-                </div>
+                <div className="lp-compare-label">{t.label}</div>
+                <div className="lp-compare-before"><span className="lp-compare-icon">{t.icon}</span> {t.before}</div>
+                <div className="lp-compare-arrow">↓</div>
+                <div className="lp-compare-after"><span className="lp-compare-icon">✅</span> {t.after}</div>
               </div>
             ))}
           </div>

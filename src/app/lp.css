@@ -453,23 +453,40 @@
 }
 .lp-testimonial-card:hover { transform: translateY(-3px); box-shadow: var(--lp-card-shadow-hover); }
 
-.lp-testimonial-stars { color: #f59e0b; font-size: 14px; margin-bottom: 14px; letter-spacing: 2px; }
-.lp-testimonial-text { font-size: 14px; line-height: 1.7; color: var(--lp-text-secondary); margin: 0 0 20px; }
-
-.lp-testimonial-author { display: flex; align-items: center; gap: 12px; }
-.lp-testimonial-avatar {
-  width: 40px; height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--lp-accent), #ff8f5c);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
+.lp-compare-label {
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-accent);
+  margin-bottom: 14px;
 }
-.lp-testimonial-name { font-size: 14px; font-weight: 600; color: var(--lp-text); }
-.lp-testimonial-role { font-size: 12px; color: var(--lp-text-muted); }
+.lp-compare-before {
+  font-size: 14px;
+  color: var(--lp-text-muted);
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: #f5f5f7;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+.lp-compare-arrow {
+  text-align: center;
+  font-size: 16px;
+  color: var(--lp-accent);
+  margin: 4px 0;
+}
+.lp-compare-after {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lp-text);
+  line-height: 1.6;
+  padding: 10px 12px;
+  background: var(--lp-accent-soft);
+  border: 1px solid rgba(255,107,43,0.12);
+  border-radius: 10px;
+}
+.lp-compare-icon { margin-right: 4px; }
 
 /* ===== FAQ ===== */
 .lp-faq { background: var(--lp-bg); }
