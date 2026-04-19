@@ -71,6 +71,31 @@ export default async function DashboardPage() {
     return `〜¥${max!.toLocaleString()}`;
   };
 
+  // === Profile Completion (Goal Gradient Effect) ===
+  const completionItems = [
+    { label: 'プロフィール写真', done: !!typedProfile.avatar_url, href: '/profile/edit' },
+    { label: '自己紹介', done: !!typedProfile.bio && typedProfile.bio.length > 10, href: '/profile/edit' },
+    { label: 'スキル設定', done: !!typedProfile.skills && typedProfile.skills.length >= 1, href: '/profile/edit' },
+    { label: '地域設定', done: !!typedProfile.prefecture, href: '/profile/edit' },
+    { label: 'ポートフォリオ', done: (portfolioCount || 0) > 0, href: '/portfolio/new' },
+  ];
+  const completedCount = completionItems.filter(i => i.done).length;
+  const completionPct = Math.round((completedCount / completionItems.length) * 100);
+  const nextAction = completionItems.find(i => !i.done);
+
+  // === Onboarding Checklist (Zeigarnik Effect) ===
+  const onboardingSteps = [
+    { label: 'プロフィール写真を追加', done: !!typedProfile.avatar_url, href: '/profile/edit' },
+    { label: 'スキルを設定する', done: !!typedProfile.skills && typedProfile.skills.length >= 1, href: '/profile/edit' },
+    { label: '自己紹介を書く', done: !!typedProfile.bio && typedProfile.bio.length > 10, href: '/profile/edit' },
+    { label: '案件を見てみる', done: (recentJobs?.length || 0) > 0 ? true : false, href: '/jobs' },
+    { label: 'パートナーをお気に入り', done: false, href: '/search' }, // Track via favorites count from user
+  ];
+  // Check if user has favorited anyone
+  const { count: myFavCount } = await supabase.from('favorites').select('*', { count: 'exact', head: true }).eq('user_id', user.id);
+  onboardingSteps[4].done = (myFavCount || 0) > 0;
+  const allOnboardingDone = onboardingSteps.every(s => s.done);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-24 space-y-6">
       {statusBanner()}
@@ -84,6 +109,76 @@ export default async function DashboardPage() {
           新しいパートナーや案件をチェックしよう
         </p>
       </div>
+
+      {/* Profile Completion Bar (Goal Gradient Effect) */}
+      {completionPct < 100 && (
+        <div className="glass p-5 animate-fade-in" style={{ borderColor: 'rgba(124,91,240,0.15)' }}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+              プロフィール完成度
+            </span>
+            <span className="text-xs font-bold" style={{ color: 'var(--accent-light)' }}>{completionPct}%</span>
+          </div>
+          <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: 'var(--surface-2)' }}>
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{
+                width: `${completionPct}%`,
+                background: completionPct >= 80 ? 'var(--success)' : 'linear-gradient(90deg, var(--accent), var(--accent-light))',
+              }}
+            />
+          </div>
+          {nextAction && (
+            <Link href={nextAction.href} className="flex items-center gap-2 mt-3 text-xs font-medium" style={{ color: 'var(--accent-light)' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+              次のステップ: {nextAction.label}を追加
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Onboarding Checklist (Zeigarnik Effect + Commitment) */}
+      {!allOnboardingDone && (
+        <div className="glass p-5 animate-fade-in animate-fade-in-delay-1" style={{ borderColor: 'rgba(52,211,153,0.1)' }}>
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
+              はじめてのVESTIE
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+              style={{ background: 'rgba(52,211,153,0.1)', color: 'var(--success)' }}>
+              {onboardingSteps.filter(s => s.done).length}/{onboardingSteps.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {onboardingSteps.map((step, i) => (
+              <Link key={i} href={step.href}
+                className="flex items-center gap-3 py-1.5 group">
+                <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px]"
+                  style={step.done
+                    ? { background: 'var(--success)', color: '#fff' }
+                    : { border: '1.5px solid var(--border-light)' }
+                  }>
+                  {step.done && '✓'}
+                </div>
+                <span className="text-xs font-medium"
+                  style={{
+                    color: step.done ? 'var(--text-muted)' : 'var(--text-secondary)',
+                    textDecoration: step.done ? 'line-through' : 'none',
+                  }}>
+                  {step.label}
+                </span>
+                {!step.done && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                    className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: 'var(--accent-light)' }}>
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                )}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Mini Stats Row */}
       <div className="grid grid-cols-3 gap-3 animate-fade-in animate-fade-in-delay-1">
