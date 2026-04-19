@@ -40,10 +40,7 @@ export default function LoginPage() {
       <div className="glass-strong p-8 sm:p-10">
         {/* Logo */}
         <div className="flex justify-center mb-8">
-          <div className="w-14 h-14 rounded-2xl flex items-center justify-center glow-accent"
-            style={{ background: 'var(--accent)' }}>
-            <span className="text-white text-xl font-bold">AM</span>
-          </div>
+          <img src="/vestie-logo.svg" alt="VESTIE" className="w-12 h-12" style={{ filter: 'invert(1)' }} />
         </div>
         <h1 className="text-2xl font-bold text-center mb-1" style={{ color: 'var(--text-primary)' }}>
           おかえりなさい

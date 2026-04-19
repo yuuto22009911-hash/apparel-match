@@ -35,9 +35,9 @@ export async function updateSession(request: NextRequest) {
 
   // 認証不要パス
   const publicPaths = ['/login', '/register'];
-  const isPublicPath = publicPaths.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
-  );
+  const isPublicPath =
+    request.nextUrl.pathname === '/' ||
+    publicPaths.some((path) => request.nextUrl.pathname.startsWith(path));
 
   if (!user && !isPublicPath) {
     const url = request.nextUrl.clone();
