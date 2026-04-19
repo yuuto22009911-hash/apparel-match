@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./lp.css";
 
 :root {
   /* Core palette — deep midnight */
