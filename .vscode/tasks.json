@@ -1,0 +1,179 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev: Next.js",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "next",
+        "pattern": [
+          {
+            "regexp": "^.*$",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*Starting.*",
+          "endsPattern": ".*(Ready|Local:).*"
+        }
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true,
+        "group": "dev"
+      },
+      "group": "build",
+      "detail": "Starts the Next.js dev server"
+    },
+    {
+      "label": "build: Next.js",
+      "type": "npm",
+      "script": "build",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always",
+        "clear": true
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Production build"
+    },
+    {
+      "label": "lint: ESLint",
+      "type": "npm",
+      "script": "lint",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Run ESLint across the project"
+    },
+    {
+      "label": "lint: ESLint --fix",
+      "type": "shell",
+      "command": "npx eslint . --fix",
+      "problemMatcher": ["$eslint-stylish"],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Run ESLint with auto-fix"
+    },
+    {
+      "label": "typecheck: TypeScript",
+      "type": "shell",
+      "command": "npx tsc --noEmit --pretty",
+      "problemMatcher": ["$tsc"],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always",
+        "clear": true
+      },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "detail": "Type-check without emitting"
+    },
+    {
+      "label": "check: lint + typecheck",
+      "dependsOn": ["lint: ESLint", "typecheck: TypeScript"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "detail": "Run lint and typecheck in parallel"
+    },
+    {
+      "label": "deps: install",
+      "type": "shell",
+      "command": "npm install",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always",
+        "clear": true
+      },
+      "detail": "Install npm dependencies"
+    },
+    {
+      "label": "deps: outdated",
+      "type": "shell",
+      "command": "npm outdated",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Show outdated packages"
+    },
+    {
+      "label": "vercel: deploy preview",
+      "type": "shell",
+      "command": "npx vercel",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always",
+        "clear": true
+      },
+      "detail": "Deploy a preview to Vercel"
+    },
+    {
+      "label": "vercel: deploy production",
+      "type": "shell",
+      "command": "npx vercel --prod",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always",
+        "clear": true
+      },
+      "detail": "Deploy to production on Vercel"
+    },
+    {
+      "label": "vercel: env pull",
+      "type": "shell",
+      "command": "npx vercel env pull .env.local",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Pull Vercel env vars to .env.local"
+    },
+    {
+      "label": "gh: pr create",
+      "type": "shell",
+      "command": "gh pr create --fill --web",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Create a pull request via gh CLI (opens browser)"
+    },
+    {
+      "label": "gh: pr checks",
+      "type": "shell",
+      "command": "gh pr checks --watch",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Watch CI checks for current PR"
+    },
+    {
+      "label": "gh: pr view",
+      "type": "shell",
+      "command": "gh pr view --web",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "detail": "Open current PR in browser"
+    }
+  ]
+}

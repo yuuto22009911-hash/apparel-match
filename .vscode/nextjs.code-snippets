@@ -1,0 +1,251 @@
+{
+  "Server Component": {
+    "prefix": "rsc",
+    "scope": "typescriptreact",
+    "body": [
+      "type ${1:Component}Props = {",
+      "  $2",
+      "};",
+      "",
+      "export default async function ${1:Component}({ $3 }: ${1:Component}Props) {",
+      "  $0",
+      "  return (",
+      "    <div>${1:Component}</div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "Async Server Component (Next.js App Router)"
+  },
+  "Client Component": {
+    "prefix": "rcc",
+    "scope": "typescriptreact",
+    "body": [
+      "'use client';",
+      "",
+      "import { useState } from 'react';",
+      "",
+      "type ${1:Component}Props = {",
+      "  $2",
+      "};",
+      "",
+      "export function ${1:Component}({ $3 }: ${1:Component}Props) {",
+      "  $0",
+      "  return (",
+      "    <div>${1:Component}</div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "Client Component with 'use client' directive"
+  },
+  "Page": {
+    "prefix": "npg",
+    "scope": "typescriptreact",
+    "body": [
+      "import type { Metadata } from 'next';",
+      "",
+      "export const metadata: Metadata = {",
+      "  title: '${1:Page title}',",
+      "  description: '${2:Page description}',",
+      "};",
+      "",
+      "export default async function Page() {",
+      "  $0",
+      "  return (",
+      "    <main>",
+      "      <h1>${1:Page title}</h1>",
+      "    </main>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "App Router page.tsx with metadata"
+  },
+  "Layout": {
+    "prefix": "nly",
+    "scope": "typescriptreact",
+    "body": [
+      "import type { ReactNode } from 'react';",
+      "",
+      "export default function Layout({ children }: { children: ReactNode }) {",
+      "  return (",
+      "    <div>",
+      "      $0",
+      "      {children}",
+      "    </div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "App Router layout.tsx"
+  },
+  "Loading UI": {
+    "prefix": "nlo",
+    "scope": "typescriptreact",
+    "body": [
+      "export default function Loading() {",
+      "  return (",
+      "    <div role=\"status\" aria-live=\"polite\">",
+      "      ${1:Loading…}",
+      "    </div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "App Router loading.tsx"
+  },
+  "Error Boundary": {
+    "prefix": "ner",
+    "scope": "typescriptreact",
+    "body": [
+      "'use client';",
+      "",
+      "import { useEffect } from 'react';",
+      "",
+      "export default function Error({",
+      "  error,",
+      "  reset,",
+      "}: {",
+      "  error: Error & { digest?: string };",
+      "  reset: () => void;",
+      "}) {",
+      "  useEffect(() => {",
+      "    console.error(error);",
+      "  }, [error]);",
+      "",
+      "  return (",
+      "    <div role=\"alert\">",
+      "      <h2>${1:Something went wrong}</h2>",
+      "      <button onClick={() => reset()}>Try again</button>",
+      "    </div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "App Router error.tsx (must be client component)"
+  },
+  "Not Found": {
+    "prefix": "nnf",
+    "scope": "typescriptreact",
+    "body": [
+      "import Link from 'next/link';",
+      "",
+      "export default function NotFound() {",
+      "  return (",
+      "    <div>",
+      "      <h2>${1:Not Found}</h2>",
+      "      <Link href=\"/\">${2:Return Home}</Link>",
+      "    </div>",
+      "  );",
+      "}",
+      ""
+    ],
+    "description": "App Router not-found.tsx"
+  },
+  "Server Action": {
+    "prefix": "rsa",
+    "scope": "typescript,typescriptreact",
+    "body": [
+      "'use server';",
+      "",
+      "import { revalidatePath } from 'next/cache';",
+      "",
+      "export async function ${1:actionName}(formData: FormData) {",
+      "  const ${2:value} = formData.get('${2:value}');",
+      "  $0",
+      "  revalidatePath('${3:/}');",
+      "}",
+      ""
+    ],
+    "description": "Server Action ('use server')"
+  },
+  "Route Handler GET": {
+    "prefix": "rhg",
+    "scope": "typescript",
+    "body": [
+      "import { NextResponse } from 'next/server';",
+      "",
+      "export async function GET(request: Request) {",
+      "  $0",
+      "  return NextResponse.json({ ok: true });",
+      "}",
+      ""
+    ],
+    "description": "Route Handler GET"
+  },
+  "Route Handler POST": {
+    "prefix": "rhp",
+    "scope": "typescript",
+    "body": [
+      "import { NextResponse } from 'next/server';",
+      "",
+      "export async function POST(request: Request) {",
+      "  const body = await request.json();",
+      "  $0",
+      "  return NextResponse.json({ ok: true });",
+      "}",
+      ""
+    ],
+    "description": "Route Handler POST"
+  },
+  "Middleware": {
+    "prefix": "nmw",
+    "scope": "typescript",
+    "body": [
+      "import { NextResponse } from 'next/server';",
+      "import type { NextRequest } from 'next/server';",
+      "",
+      "export function middleware(request: NextRequest) {",
+      "  $0",
+      "  return NextResponse.next();",
+      "}",
+      "",
+      "export const config = {",
+      "  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],",
+      "};",
+      ""
+    ],
+    "description": "middleware.ts"
+  },
+  "Supabase Server Client": {
+    "prefix": "sbs",
+    "scope": "typescript,typescriptreact",
+    "body": [
+      "import { createClient } from '@/lib/supabase/server';",
+      "",
+      "const supabase = await createClient();",
+      "$0"
+    ],
+    "description": "Supabase server-side client"
+  },
+  "Supabase Browser Client": {
+    "prefix": "sbb",
+    "scope": "typescript,typescriptreact",
+    "body": [
+      "import { createClient } from '@/lib/supabase/client';",
+      "",
+      "const supabase = createClient();",
+      "$0"
+    ],
+    "description": "Supabase browser-side client"
+  },
+  "useState hook": {
+    "prefix": "us",
+    "scope": "typescript,typescriptreact",
+    "body": [
+      "const [${1:state}, set${1/(.*)/${1:/capitalize}/}] = useState${2:<${3:type}>}(${4:initial});"
+    ],
+    "description": "useState hook"
+  },
+  "useEffect hook": {
+    "prefix": "ue",
+    "scope": "typescript,typescriptreact",
+    "body": [
+      "useEffect(() => {",
+      "  $0",
+      "}, [$1]);"
+    ],
+    "description": "useEffect hook"
+  }
+}

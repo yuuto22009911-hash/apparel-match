@@ -1,0 +1,323 @@
+{
+  // ───────────────────────── Editor ─────────────────────────
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.rulers": [100],
+  "editor.linkedEditing": true,
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.stickyScroll.enabled": true,
+  "editor.suggestSelection": "first",
+  "editor.inlineSuggest.enabled": true,
+  "editor.accessibilitySupport": "off",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.organizeImports": "never"
+  },
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+
+  // ───────────────────────── Files ─────────────────────────
+  "files.eol": "\n",
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "files.trimFinalNewlines": true,
+  "files.exclude": {
+    "**/.next": true,
+    "**/.vercel": true,
+    "**/node_modules": true,
+    "**/*.tsbuildinfo": true,
+    "**/next-env.d.ts": true
+  },
+  "files.watcherExclude": {
+    "**/.next/**": true,
+    "**/.vercel/**": true,
+    "**/node_modules/**": true,
+    "**/.git/objects/**": true
+  },
+  "files.associations": {
+    "*.css": "tailwindcss",
+    "*.env.local": "dotenv",
+    "*.env.production": "dotenv"
+  },
+
+  // ───────────────────────── Search ─────────────────────────
+  "search.exclude": {
+    "**/.next": true,
+    "**/.vercel": true,
+    "**/node_modules": true,
+    "**/package-lock.json": true,
+    "**/coverage": true,
+    "**/dist": true
+  },
+  "search.useGlobalIgnoreFiles": true,
+  "search.useParentIgnoreFiles": true,
+
+  // ───────────────────────── TypeScript ─────────────────────────
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "typescript.preferences.preferTypeOnlyAutoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.suggest.autoImports": true,
+  "typescript.preferences.includePackageJsonAutoImports": "auto",
+  "typescript.inlayHints.parameterNames.enabled": "literals",
+  "typescript.inlayHints.functionLikeReturnTypes.enabled": false,
+  "typescript.inlayHints.variableTypes.enabled": false,
+  "typescript.tsserver.maxTsServerMemory": 4096,
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  // ───────────────────────── ESLint (flat config v9) ─────────────────────────
+  "eslint.useFlatConfig": true,
+  "eslint.run": "onType",
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.problems.shortenToSingleLine": true,
+  "eslint.rules.customizations": [
+    { "rule": "*", "severity": "warn" }
+  ],
+
+  // ───────────────────────── Tailwind v4 (CSS-first) ─────────────────────────
+  "tailwindCSS.experimental.configFile": "src/app/globals.css",
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+  "tailwindCSS.classAttributes": ["class", "className", "ngClass", "class:list"],
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["clsx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["cn\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"],
+    ["tw`([^`]*)", "([^\\s]+)"]
+  ],
+  "tailwindCSS.lint.invalidApply": "error",
+  "tailwindCSS.lint.invalidConfigPath": "error",
+  "tailwindCSS.lint.invalidScreen": "error",
+  "tailwindCSS.lint.invalidTailwindDirective": "error",
+  "tailwindCSS.lint.invalidVariant": "error",
+
+  // ───────────────────────── CSS (Tailwind directives) ─────────────────────────
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+  "css.customData": [],
+
+  // ───────────────────────── Git ─────────────────────────
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+  "git.openRepositoryInParentFolders": "never",
+  "git.suggestSmartCommit": false,
+  "git.pruneOnFetch": true,
+  "git.fetchOnPull": true,
+  "git.branchProtection": ["main", "master"],
+  "git.branchProtectionPrompt": "alwaysPrompt",
+  "git.inputValidationLength": 72,
+  "git.inputValidationSubjectLength": 50,
+  "git.allowForcePush": false,
+  "git.useCommitInputAsStashMessage": true,
+  "diffEditor.ignoreTrimWhitespace": false,
+  "diffEditor.renderSideBySide": true,
+
+  // ───────────────────────── GitHub Pull Requests ─────────────────────────
+  "githubPullRequests.pullBranch": "always",
+  "githubPullRequests.pushBranch": "always",
+  "githubPullRequests.defaultMergeMethod": "squash",
+  "githubPullRequests.fileListLayout": "tree",
+  "githubPullRequests.notifications": "pullRequests",
+  "githubPullRequests.terminalLinksHandler": "github",
+  "githubPullRequests.createOnPublishBranch": "ask",
+  "githubPullRequests.assignCreated": "${user}",
+  "githubPullRequests.defaultCommentType": "review",
+  "githubIssues.queries": [
+    {
+      "label": "My Issues",
+      "query": "default"
+    },
+    {
+      "label": "Created By Me",
+      "query": "author:${user} state:open repo:${owner}/${repository} sort:created-desc"
+    },
+    {
+      "label": "Assigned To Me",
+      "query": "assignee:${user} state:open repo:${owner}/${repository} sort:created-desc"
+    },
+    {
+      "label": "Mentioned",
+      "query": "mentions:${user} state:open repo:${owner}/${repository} sort:created-desc"
+    }
+  ],
+  "githubIssues.workingIssueFormatScm": "Fixes #${issueNumberLabel}\n\n${comment}",
+
+  // ───────────────────────── GitLens ─────────────────────────
+  "gitlens.codeLens.enabled": true,
+  "gitlens.currentLine.enabled": true,
+  "gitlens.currentLine.scrollable": false,
+  "gitlens.hovers.currentLine.over": "line",
+  "gitlens.statusBar.enabled": true,
+  "gitlens.views.repositories.files.layout": "tree",
+  "gitlens.advanced.messages": {
+    "suppressGitMissingWarning": false
+  },
+
+  // ───────────────────────── Conventional Commits ─────────────────────────
+  "conventionalCommits.scopes": [
+    "auth",
+    "dashboard",
+    "lp",
+    "onboarding",
+    "supabase",
+    "email",
+    "ui",
+    "api",
+    "deps",
+    "config"
+  ],
+  "conventionalCommits.autoCommit": false,
+  "conventionalCommits.showEditor": true,
+  "conventionalCommits.lineBreak": "\\n\\n",
+
+  // ───────────────────────── Explorer (file nesting) ─────────────────────────
+  "explorer.fileNesting.enabled": true,
+  "explorer.fileNesting.expand": false,
+  "explorer.fileNesting.patterns": {
+    "*.ts": "${capture}.test.ts,${capture}.spec.ts,${capture}.d.ts",
+    "*.tsx": "${capture}.test.tsx,${capture}.spec.tsx,${capture}.module.css",
+    "page.tsx": "loading.tsx,error.tsx,not-found.tsx,layout.tsx,template.tsx,default.tsx",
+    "layout.tsx": "loading.tsx,error.tsx,not-found.tsx",
+    "package.json": "package-lock.json,pnpm-lock.yaml,yarn.lock,bun.lockb,.npmrc,.nvmrc,.node-version",
+    "next.config.*": "postcss.config.*,tailwind.config.*,next-env.d.ts,vercel.json,vercel.ts,middleware.ts",
+    "tsconfig.json": "tsconfig.*.json",
+    "eslint.config.*": ".eslintignore,.eslintrc*,.prettierrc*,.prettierignore",
+    ".env": ".env.*",
+    ".gitignore": ".gitattributes,.editorconfig,.gitmodules",
+    "README.md": "AGENTS.md,CLAUDE.md,DESIGN.md,CHANGELOG.md,CONTRIBUTING.md,CODE_OF_CONDUCT.md,LICENSE*,SECURITY.md"
+  },
+  "explorer.confirmDelete": true,
+  "explorer.confirmDragAndDrop": true,
+  "explorer.compactFolders": false,
+
+  // ───────────────────────── Workbench / UX ─────────────────────────
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.tabSizing": "shrink",
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 10,
+  "workbench.tree.indent": 16,
+
+  // ───────────────────────── Terminal ─────────────────────────
+  "terminal.integrated.scrollback": 10000,
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.persistentSessionReviveProcess": "onExitAndWindowClose",
+  "terminal.integrated.enableMultiLinePasteWarning": "auto",
+
+  // ───────────────────────── Error Lens ─────────────────────────
+  "errorLens.enabled": true,
+  "errorLens.gutterIconsEnabled": true,
+  "errorLens.followCursor": "allLines",
+  "errorLens.excludeBySource": [
+    "cSpell",
+    "Grammarly"
+  ],
+
+  // ───────────────────────── Code Spell Checker ─────────────────────────
+  "cSpell.words": [
+    "apparel",
+    "geist",
+    "lucide",
+    "monofloras",
+    "nextjs",
+    "noreply",
+    "OKLCH",
+    "supabase",
+    "tailwindcss",
+    "tsbuildinfo",
+    "vercel",
+    "vestie",
+    "resend",
+    "shadcn",
+    "tsdk",
+    "fluidcompute"
+  ],
+  "cSpell.enableFiletypes": [
+    "typescript",
+    "typescriptreact",
+    "markdown"
+  ],
+
+  // ───────────────────────── TODO Tree ─────────────────────────
+  "todo-tree.general.tags": [
+    "TODO",
+    "FIXME",
+    "HACK",
+    "NOTE",
+    "REVIEW",
+    "[ ]",
+    "[x]"
+  ],
+  "todo-tree.highlights.defaultHighlight": {
+    "type": "tag",
+    "foreground": "#fff",
+    "background": "#7c5bf0",
+    "iconColour": "#7c5bf0",
+    "rulerColour": "#7c5bf0"
+  },
+
+  // ───────────────────────── Language-specific ─────────────────────────
+  "[typescript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "off",
+      "other": "off"
+    }
+  },
+  "[sql]": {
+    "editor.tabSize": 2
+  },
+  "[css]": {
+    "editor.suggest.insertMode": "replace"
+  },
+  "[tailwindcss]": {
+    "editor.suggest.insertMode": "replace"
+  },
+
+  // ───────────────────────── Emmet ─────────────────────────
+  "emmet.includeLanguages": {
+    "typescriptreact": "html",
+    "javascriptreact": "html"
+  },
+  "emmet.triggerExpansionOnTab": true,
+
+  // ───────────────────────── npm ─────────────────────────
+  "npm.packageManager": "npm",
+  "npm.fetchOnlinePackageInfo": true
+}

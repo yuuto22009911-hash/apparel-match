@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vscode (keep shared configs; ignore local-only state)
+.vscode/.chrome-debug-profile/
+.vscode/*.local.json
+.history/
