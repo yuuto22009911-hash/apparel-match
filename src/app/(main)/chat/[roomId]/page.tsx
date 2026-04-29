@@ -4,8 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { ChatMessage, ChatRoom, Profile } from '@/lib/types';
-import { ArrowLeft, Send, Users, UserPlus, X, Info } from 'lucide-react';
+import { ArrowLeft, Send, Users, UserPlus, Info } from 'lucide-react';
 import Link from 'next/link';
+import ChatRoomSkeleton from '@/components/chat/ChatRoomSkeleton';
 
 interface GroupMember {
   user_id: string;
@@ -218,11 +219,7 @@ export default function ChatRoomPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--surface-3)', borderTopColor: 'var(--accent)' }} />
-      </div>
-    );
+    return <ChatRoomSkeleton />;
   }
 
   if (error) {

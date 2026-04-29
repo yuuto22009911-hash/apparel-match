@@ -40,7 +40,7 @@ export default function UserManagementPage() {
 
       if (fetchError) throw fetchError;
 
-      setUsers((data as any[]) || []);
+      setUsers((data as Profile[]) || []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'ユーザーの取得に失敗しました');

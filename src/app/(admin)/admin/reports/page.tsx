@@ -56,7 +56,7 @@ export default function ReportManagementPage() {
 
       if (fetchError) throw fetchError;
 
-      setReports((data as any[]) || []);
+      setReports((data as unknown as ReportWithDetails[]) || []);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '通報情報の取得に失敗しました');
@@ -70,7 +70,7 @@ export default function ReportManagementPage() {
     try {
       setActionInProgress(reportId);
       const supabase = createClient();
-      const updateData: Record<string, any> = { status: newStatus };
+      const updateData: Record<string, string> = { status: newStatus };
       if (newStatus === 'resolved') {
         updateData.resolved_at = new Date().toISOString();
       }
