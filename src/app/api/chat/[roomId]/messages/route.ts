@@ -26,7 +26,7 @@ export async function GET(
       );
     }
 
-    // Verify user is a participant in this room
+    // Verify user is a participant in this room (1:1 or group)
     const { data: room, error: roomError } = await supabase
       .from('chat_rooms')
       .select('*')
@@ -40,7 +40,19 @@ export async function GET(
       );
     }
 
-    if (room.user1_id !== user.id && room.user2_id !== user.id) {
+    const isDirectParticipant = room.user1_id === user.id || room.user2_id === user.id;
+    let isGroupMember = false;
+    if (room.is_group) {
+      const { data: membership } = await supabase
+        .from('chat_room_members')
+        .select('user_id')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      isGroupMember = !!membership;
+    }
+
+    if (!isDirectParticipant && !isGroupMember) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'User is not a participant in this room' } },
         { status: 403 }
@@ -56,18 +68,25 @@ export async function GET(
 
     if (messagesError) throw messagesError;
 
-    // Mark unread messages from the other user as read
-    const otherUserId = room.user1_id === user.id ? room.user2_id : room.user1_id;
-
-    const { error: updateError } = await supabase
-      .from('chat_messages')
-      .update({ is_read: true })
-      .eq('room_id', roomId)
-      .eq('sender_id', otherUserId)
-      .eq('is_read', false);
-
-    if (updateError) {
-      console.error('Error marking messages as read:', updateError);
+    // Mark unread messages as read
+    if (room.is_group) {
+      // Group: mark all messages from other senders as read for this user
+      const { error: updateError } = await supabase
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('room_id', roomId)
+        .neq('sender_id', user.id)
+        .eq('is_read', false);
+      if (updateError) console.error('Error marking group messages as read:', updateError);
+    } else {
+      const otherUserId = room.user1_id === user.id ? room.user2_id : room.user1_id;
+      const { error: updateError } = await supabase
+        .from('chat_messages')
+        .update({ is_read: true })
+        .eq('room_id', roomId)
+        .eq('sender_id', otherUserId)
+        .eq('is_read', false);
+      if (updateError) console.error('Error marking messages as read:', updateError);
     }
 
     return NextResponse.json({ data: messages || [] });
@@ -108,7 +127,7 @@ export async function POST(
       );
     }
 
-    // Verify user is a participant in this room
+    // Verify user is a participant in this room (1:1 or group)
     const { data: room, error: roomError } = await supabase
       .from('chat_rooms')
       .select('*')
@@ -122,7 +141,19 @@ export async function POST(
       );
     }
 
-    if (room.user1_id !== user.id && room.user2_id !== user.id) {
+    const isDirectParticipant = room.user1_id === user.id || room.user2_id === user.id;
+    let isGroupMember = false;
+    if (room.is_group) {
+      const { data: membership } = await supabase
+        .from('chat_room_members')
+        .select('user_id')
+        .eq('room_id', roomId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+      isGroupMember = !!membership;
+    }
+
+    if (!isDirectParticipant && !isGroupMember) {
       return NextResponse.json(
         { error: { code: 'FORBIDDEN', message: 'User is not a participant in this room' } },
         { status: 403 }
@@ -156,9 +187,11 @@ export async function POST(
       console.error('Error updating chat room:', updateError);
     }
 
-    // Send email notification (non-blocking, errors are logged but don't affect response)
+    // Send email notification (1:1 のみ。グループは通知スパムになるので送らない)
     try {
-      const recipientId = room.user1_id === user.id ? room.user2_id : room.user1_id;
+      const recipientId = !room.is_group
+        ? (room.user1_id === user.id ? room.user2_id : room.user1_id)
+        : null;
 
       if (recipientId) {
         const now = Date.now();

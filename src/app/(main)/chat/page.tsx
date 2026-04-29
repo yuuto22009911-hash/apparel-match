@@ -4,8 +4,9 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
-import { MessageSquare, Plus, Users, Search, X, UserPlus, MessagesSquare } from 'lucide-react';
+import { MessageSquare, Users, Search, X, UserPlus, MessagesSquare, Sparkles } from 'lucide-react';
 import type { ChatRoomWithProfile, Profile } from '@/lib/types';
+import ChatListSkeleton from '@/components/chat/ChatListSkeleton';
 
 function formatDate(dateString: string | null) {
   if (!dateString) return '';
@@ -39,19 +40,24 @@ export default function ChatPage() {
       if (!user) { router.push('/login'); return; }
       setCurrentUserId(user.id);
 
-      const { data: directRooms } = await supabase
-        .from('chat_rooms')
-        .select('*')
-        .eq('is_group', false)
-        .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+      // ステップ1: 1:1 ルームとグループ所属を並列取得
+      const [directRoomsRes, memberRowsRes] = await Promise.all([
+        supabase
+          .from('chat_rooms')
+          .select('*')
+          .eq('is_group', false)
+          .or(`user1_id.eq.${user.id},user2_id.eq.${user.id}`)
+          .order('last_message_at', { ascending: false, nullsFirst: false }),
+        supabase
+          .from('chat_room_members')
+          .select('room_id')
+          .eq('user_id', user.id),
+      ]);
 
-      const { data: memberRows } = await supabase
-        .from('chat_room_members')
-        .select('room_id')
-        .eq('user_id', user.id);
+      const directRooms = directRoomsRes.data || [];
+      const groupRoomIds = (memberRowsRes.data || []).map(r => r.room_id);
 
-      const groupRoomIds = (memberRows || []).map(r => r.room_id);
+      // ステップ2: グループ詳細
       let groupRooms: ChatRoomWithProfile[] = [];
       if (groupRoomIds.length > 0) {
         const { data: gRooms } = await supabase
@@ -63,28 +69,38 @@ export default function ChatPage() {
         groupRooms = (gRooms || []) as ChatRoomWithProfile[];
       }
 
-      const directWithProfiles = await Promise.all(
-        (directRooms || []).map(async (room) => {
-          const otherUserId = room.user1_id === user.id ? room.user2_id : room.user1_id;
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('id, display_name, avatar_url, user_type')
-            .eq('id', otherUserId)
-            .single();
-          return { ...room, other_user: profile || undefined } as ChatRoomWithProfile;
-        })
-      );
-
-      const groupWithInfo = groupRooms.map(room => ({ ...room, other_user: undefined })) as ChatRoomWithProfile[];
-
-      const all = [...directWithProfiles, ...groupWithInfo].sort((a, b) => {
+      // ステップ3: ルーム枠を即時描画（プロフィールはまだ）
+      // これでスケルトン → プロフィール無しでも実データに置き換わり、待ち時間体感が短くなる
+      const directShells = directRooms.map(r => ({ ...r, other_user: undefined } as ChatRoomWithProfile));
+      const groupShells = groupRooms.map(r => ({ ...r, other_user: undefined } as ChatRoomWithProfile));
+      const initialAll = [...directShells, ...groupShells].sort((a, b) => {
         const ta = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
         const tb = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
         return tb - ta;
       });
-
-      setRooms(all);
+      setRooms(initialAll);
       setLoading(false);
+
+      // ステップ4: プロフィールをまとめて取得（N+1 を1回にまとめる）
+      const otherIds = directRooms
+        .map(r => (r.user1_id === user.id ? r.user2_id : r.user1_id))
+        .filter((id): id is string => !!id);
+
+      if (otherIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name, avatar_url, user_type')
+          .in('id', otherIds);
+
+        const profileMap: Record<string, Profile> = {};
+        (profiles || []).forEach(p => { profileMap[p.id] = p as Profile; });
+
+        setRooms(prev => prev.map(r => {
+          if (r.is_group) return r;
+          const otherId = r.user1_id === user.id ? r.user2_id : r.user1_id;
+          return { ...r, other_user: otherId ? profileMap[otherId] : undefined };
+        }));
+      }
     };
     loadRooms();
   }, []);
@@ -192,23 +208,15 @@ export default function ChatPage() {
     setFoundUsers([]);
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="w-8 h-8 border-2 rounded-full animate-spin" style={{ borderColor: 'var(--surface-3)', borderTopColor: 'var(--accent)' }} />
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 pb-24">
-      {/* Header */}
+      {/* Header — ローディング中も即時表示してタップ100msフィードバックの土台にする */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>チャット</h1>
         <div className="flex gap-2">
           <button
             onClick={() => setModalMode('new_chat')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-transform active:scale-[0.97]"
             style={{ background: 'var(--accent)', color: 'white' }}
           >
             <MessageSquare className="w-4 h-4" />
@@ -216,7 +224,7 @@ export default function ChatPage() {
           </button>
           <button
             onClick={() => setModalMode('new_group')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-transform active:scale-[0.97]"
             style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
           >
             <Users className="w-4 h-4" />
@@ -226,27 +234,57 @@ export default function ChatPage() {
       </div>
 
       {/* Room List */}
-      {rooms.length === 0 ? (
-        <div className="rounded-xl p-12 text-center" style={{ background: 'var(--surface)' }}>
-          <MessagesSquare className="w-14 h-14 mx-auto mb-4" style={{ color: 'var(--surface-3)' }} />
-          <p className="text-sm font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>まだチャットはありません</p>
-          <p className="text-xs mb-5" style={{ color: 'var(--text-muted)' }}>「新しいチャット」からユーザーを検索して会話を始めましょう</p>
-          <button
-            onClick={() => setModalMode('new_chat')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--accent)', color: 'white' }}
+      {loading ? (
+        <ChatListSkeleton count={6} />
+      ) : rooms.length === 0 ? (
+        <div
+          className="rounded-2xl p-10 text-center animate-fade-in"
+          style={{
+            background: 'linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%)',
+            border: '1px solid var(--border)',
+            animationFillMode: 'forwards',
+          }}
+        >
+          <div
+            className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center"
+            style={{ background: 'var(--accent-glow)', boxShadow: '0 8px 32px var(--accent-glow)' }}
           >
-            <MessageSquare className="w-4 h-4" />
-            新しいチャットを始める
-          </button>
+            <MessagesSquare className="w-7 h-7" style={{ color: 'var(--accent-light)' }} />
+          </div>
+          <h2 className="text-base font-semibold mb-1.5" style={{ color: 'var(--text-primary)' }}>
+            最初の会話を始めよう
+          </h2>
+          <p className="text-xs mb-6 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+            気になるユーザーと1対1で話したり、<br />
+            複数人のグループで案件相談ができます
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <button
+              onClick={() => setModalMode('new_chat')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-transform active:scale-[0.97]"
+              style={{ background: 'var(--accent)', color: 'white' }}
+            >
+              <Sparkles className="w-4 h-4" />
+              新しいチャット
+            </button>
+            <button
+              onClick={() => setModalMode('new_group')}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition-transform active:scale-[0.97]"
+              style={{ background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+            >
+              <Users className="w-4 h-4" />
+              グループを作る
+            </button>
+          </div>
         </div>
       ) : (
-        <div className="rounded-xl overflow-hidden" style={{ background: 'var(--surface)' }}>
+        <div className="rounded-xl overflow-hidden animate-fade-in" style={{ background: 'var(--surface)', animationFillMode: 'forwards' }}>
           {rooms.map((room, i) => (
             <Link
               key={room.id}
               href={`/chat/${room.id}`}
-              className="flex items-center gap-3 px-4 py-3.5 transition-colors"
+              prefetch
+              className="flex items-center gap-3 px-4 py-3.5 transition-all active:scale-[0.99]"
               style={{ borderBottom: i < rooms.length - 1 ? '1px solid var(--border)' : 'none' }}
               onMouseEnter={(e) => e.currentTarget.style.background = 'var(--surface-2)'}
               onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}

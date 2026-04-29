@@ -200,6 +200,35 @@ a, button {
   animation: shimmer 2s ease-in-out infinite;
 }
 
+/* スケルトンの基本ブロック。Bill Chung の研究に従い左→右の wave */
+.skeleton-block {
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-2);
+  border-radius: 8px;
+}
+
+.skeleton-block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block::after {
+    animation: none;
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
 /* ===== Fade-in Animation ===== */
 
 @keyframes fade-in {
